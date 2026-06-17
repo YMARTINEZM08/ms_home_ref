@@ -9,10 +9,11 @@ description: >
   optimized for Google Cloud Run.
 compatibility: >
   Go 1.24+, Go Modules, Linux, Docker, Google Cloud Run, Kubernetes.
-  Frameworks: Standard Library, Chi, Gin, Fiber, Echo, gRPC, ConnectRPC.
+  HTTP Framework: Chi only.
+  RPC: gRPC or ConnectRPC when explicitly required.
 license: internal
 metadata:
-  version: "3.0.0"
+  version: "3.1.0"
 ---
 ```
 
@@ -144,6 +145,34 @@ Keep packages cohesive.
 
 Avoid circular dependencies.
 
+## Rule 3.1 — HTTP Framework
+
+The only supported HTTP framework is **Chi**.
+
+Do not generate implementations using:
+
+* Gin
+* Fiber
+* Echo
+* Gorilla Mux
+* Beego
+* Revel
+* Any other HTTP framework
+
+Use:
+
+* net/http
+* github.com/go-chi/chi/v5
+* Chi middleware when appropriate
+
+Every HTTP component must follow Chi idioms and integrate naturally with the Hexagonal Architecture.
+
+Avoid framework-specific abstractions that make future maintenance harder.
+
+When middleware is required, prefer Chi's native middleware before introducing custom implementations.
+
+All examples, handlers, routers, middleware, and project scaffolding must assume Chi as the default HTTP framework.
+
 ---
 
 # Rule 4 — Performance
@@ -261,6 +290,63 @@ Document only information useful for future development:
 Avoid verbose documentation.
 
 The objective is to minimize context loss across future AI or human iterations.
+
+## Rule 8.1 — API Documentation
+
+API documentation is mandatory.
+
+Every exposed HTTP endpoint must be documented using Swagger/OpenAPI annotations.
+
+Prefer:
+
+* OpenAPI 3.x
+* swaggo/swag
+* http-swagger (or equivalent) for local API exploration
+
+Every endpoint must include:
+
+* Summary
+* Description
+* Tags
+* Request parameters
+* Path parameters
+* Query parameters
+* Headers when applicable
+* Request body
+* Success responses
+* Error responses
+* Authentication requirements
+* Example payloads whenever possible
+
+Swagger documentation must always remain synchronized with the implementation.
+
+Any API change is considered incomplete until the Swagger specification has been updated.
+
+---
+
+## Method Documentation
+
+Every exported function, method, interface, struct, and package must include GoDoc comments.
+
+Comments should explain:
+
+* Purpose
+* Responsibilities
+* Business intent
+* Important side effects
+* Parameters
+* Return values
+* Possible errors
+* Concurrency considerations (if applicable)
+
+Avoid comments that merely repeat the code.
+
+Comments should explain **why** something exists rather than **what** the code literally does.
+
+Complex business logic should include concise documentation describing the decision-making process.
+
+Generated documentation should improve maintainability for both developers and future AI-assisted iterations.
+
 
 ---
 
@@ -433,6 +519,11 @@ Before generating any code, verify:
 * The implementation minimizes cloud infrastructure costs.
 * The solution is production-ready.
 * The solution improves developer experience across DEV, QA, Staging, and Production environments.
+* The project uses Chi as the only HTTP framework.
+* Every HTTP endpoint includes Swagger/OpenAPI documentation.
+* Every exported package, type, interface and function includes GoDoc documentation.
+* Swagger documentation matches the implementation.
+* API examples are up to date.
 
 ---
 
