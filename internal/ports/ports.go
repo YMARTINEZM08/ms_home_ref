@@ -77,3 +77,14 @@ type SalesforcePort interface {
 type CartHeaderPort interface {
 	GetCartHeaderDetails(ctx context.Context) (map[string]any, error)
 }
+
+// MultiProductResult is the decoded Search Facade multi-product response.
+type MultiProductResult struct {
+	Records []map[string]any
+}
+
+// SearchFacadePort fetches product details by id. Mirrors
+// LiverpoolSearchFacadeProvider.getMultiProductDetails (/getMultiProduct).
+type SearchFacadePort interface {
+	GetMultiProductDetails(ctx context.Context, productIDs []string, favoriteStore string) (*MultiProductResult, error)
+}

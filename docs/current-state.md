@@ -1,7 +1,18 @@
-# Current State (Phase 0 + 1a + 1b + 2a + 2b + 2c complete)
+# Current State (Phase 0 + 1a + 1b + 2a–2e complete)
 
 Runnable vertical slice: HTTP → HomeService (normalize + gate + session + populate +
-events + welcome + web shortcuts) → Content Service proxy (+ GroupBy, Jewel, Salesforce, ATG).
+events + welcome + web `me`/shortcuts) → Content Service proxy (+ GroupBy, Jewel,
+Salesforce, ATG, Search Facade). **All 12 populate strategies ported.**
+
+## Implemented (Phase 2e)
+- `banner_products`: Search Facade `/getMultiProduct` (`FromSearchFacadeProduct`) +
+  GroupBy similar-items fallback + `combineInformation` (hotspot `details`).
+- `loadSession` broadened to `personalization||groupby` so the favorite store is available.
+- Remaining for full parity: `me` token-claim fields (auth-boundary decision); login/auth.
+
+## Implemented (Phase 2d)
+- `me` projection from the memoized cart header (web merge, rule #9 — gateway model).
+- `RequestState.SalesforceAction`: per-action per-request memo (race-tested).
 
 ## Implemented (Phase 2c)
 - `ports.CartHeaderPort` + outbound `atg` adapter (cart header).

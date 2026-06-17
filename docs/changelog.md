@@ -1,5 +1,25 @@
 # Changelog
 
+## Phase 2e — banner_products (12/12 strategies)
+- `internal/product`: `FromSearchFacadeProduct` mapper.
+- Outbound `searchfacade` adapter (`/getMultiProduct`: searchFacadeConfig
+  `{dataCenter:SiteA, brand, channel}` + `productIds` + favoriteStore) + `SearchFacadePort`.
+- `banner_products` strategy: `createStringSkuArray` (hotspot image groups),
+  multi-product fetch, GroupBy similar-items fallback for missing skus,
+  `combineInformation` (attaches `details` to image groups by baseId/productId).
+- `product.ToMap` (Dto → block field). `loadSession` broadened to `personalization||groupby`
+  so banner_products gets the favorite store. `SHARED_SEARCH_FACADE_URL` config.
+- Tests: `FromSearchFacadeProduct`; banner_products (combine, sku dedupe, drop paths, null details).
+
+## Phase 2d — `me` projection & Salesforce request memo
+- `me` (rule #9): `projectMe` builds it from the memoized ATG cart header — the
+  CartHeaderDetailsDto `@Expose` subset, `email = login` remap, favoriteStore →
+  `{storeName, id}`. Attached to the web HOME merge (personalization). Token-claim
+  `@Expose` fields gateway-forwarded → currently omitted (see todos / auth boundary).
+- `RequestState.SalesforceAction`: per-action, per-request memo (sync.Once) so repeated
+  blocks share one Salesforce call (mirrors reqContext.cache.salesforce). Race-tested.
+- Tests: `projectMe` (remap, subset, drop non-expose, omit absent); memo dedup + error caching.
+
 ## Phase 2c — ATG session: favorite store & continue-buying
 - `ports.CartHeaderPort` + outbound `atg` adapter (`getCartHeaderDetails`:
   body fromBuyNow/rearrange; headers brand/channel/cookie; returns cartHeaderDetails).

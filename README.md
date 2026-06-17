@@ -34,6 +34,8 @@ cp configs/.env.example .env
 | `SALESFORCE_MODULE_TIMEOUT` | | `5s` | Salesforce call timeout |
 | `SHARED_ATG_CART_HEADER_URL` | | — | ATG cart header; empty disables favorite store + continue-buying |
 | `SHARED_ATG_TIMEOUT` | | `5s` | ATG call timeout |
+| `SHARED_SEARCH_FACADE_URL` | | — | Search Facade; empty disables `banner_products` |
+| `SHARED_SEARCH_FACADE_TIMEOUT` | | `5s` | Search Facade call timeout |
 | `PORT` | | `8080` | HTTP listen port |
 | `ENV` | | `dev` | `dev`/`qa`/`staging`/`prod` |
 | `LOG_LEVEL` | | `info` | `debug` enables cURL logging of outbound calls |
@@ -115,8 +117,11 @@ Business rules being preserved (with ported/pending status):
   legacy Android welcome container. Effective flags + identity via context.
 - ✅ Golden-contract harness skeleton (`test/contract`, structural diff; see its README).
 - ✅ Custom-data events (index + selected_store) at block + template level.
-- ✅ ATG cart header → favorite store (resolves `selected_store` events) +
-  `continueBuying` shortcut; web `shortcuts.shoppingAssistant`.
-- ⏳ Next: `me` (User/token claims), buy-again/wishlist shortcuts (Apigee/Apigee2),
-  `banner_products` (Search Facade multi-product), category data, OTel tracing,
-  blacklist + AI metrics. See [docs/todos.md](docs/todos.md).
+- ✅ ATG cart header → favorite store (resolves `selected_store` events),
+  web merge: `me` + `shortcuts.{continueBuying, shoppingAssistant}`.
+- ✅ Salesforce per-request memo (dedupes identical action calls).
+- ✅ `banner_products` (Search Facade multi-product + GroupBy similar-items +
+  hotspot `details`). **All 12 populate strategies ported.**
+- ⏳ Remaining: `me` token-claim fields (auth boundary). Out of HOME-page scope:
+  `/content/shortcuts` endpoint (buy-again/wishlist); OTel tracing; blacklist + AI
+  metrics. See [docs/todos.md](docs/todos.md).

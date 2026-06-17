@@ -27,6 +27,14 @@ type Config struct {
 	Jewel          JewelConfig
 	Salesforce     SalesforceConfig
 	ATG            ATGConfig
+	SearchFacade   SearchFacadeConfig
+}
+
+// SearchFacadeConfig targets the Search Facade. Optional: empty URL disables
+// banner_products (multi-product details).
+type SearchFacadeConfig struct {
+	BaseURL string
+	Timeout time.Duration
 }
 
 // ATGConfig targets the ATG cart-header endpoint. Optional: empty URL disables
@@ -93,6 +101,10 @@ func Load() (Config, error) {
 		ATG: ATGConfig{
 			CartHeaderURL: getEnv("SHARED_ATG_CART_HEADER_URL", ""),
 			Timeout:       getDuration("SHARED_ATG_TIMEOUT", 5*time.Second),
+		},
+		SearchFacade: SearchFacadeConfig{
+			BaseURL: getEnv("SHARED_SEARCH_FACADE_URL", ""),
+			Timeout: getDuration("SHARED_SEARCH_FACADE_TIMEOUT", 5*time.Second),
 		},
 	}
 

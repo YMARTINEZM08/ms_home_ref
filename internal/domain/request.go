@@ -57,6 +57,15 @@ type RequestState struct {
 	selectedStore    *SelectedStore
 	cartHeader       map[string]any
 	cartHeaderLoaded bool
+
+	sfMu   sync.Mutex
+	sfOnce map[string]*sfEntry
+}
+
+type sfEntry struct {
+	once sync.Once
+	data map[string]any
+	err  error
 }
 
 // NewRequestState returns state with tag_index initialized to 1 (context-defaults.middleware.ts).
@@ -100,6 +109,24 @@ func (s *RequestState) CartHeader() (map[string]any, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.cartHeader, s.cartHeaderLoaded
+}
+
+// SalesforceAction runs compute once per action per request (mirrors digital_bff's
+// reqContext.cache.salesforce dedup), so repeated blocks share a single call.
+func (s *RequestState) SalesforceAction(action string, compute func() (map[string]any, error)) (map[string]any, error) {
+	s.sfMu.Lock()
+	if s.sfOnce == nil {
+		s.sfOnce = make(map[string]*sfEntry)
+	}
+	e := s.sfOnce[action]
+	if e == nil {
+		e = &sfEntry{}
+		s.sfOnce[action] = e
+	}
+	s.sfMu.Unlock()
+
+	e.once.Do(func() { e.data, e.err = compute() })
+	return e.data, e.err
 }
 
 // BrandHeader returns the value for the x-brand-id header, appending -PREVIEW in

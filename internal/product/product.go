@@ -3,6 +3,7 @@
 package product
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 )
@@ -53,6 +54,15 @@ type Dto struct {
 	Variants            []any      `json:"variants"`
 	IsMarketplace       bool       `json:"isMarketplace"`
 	IsCollectionProduct bool       `json:"isCollectionProduct"`
+}
+
+// ToMap renders a Dto as a generic map (JSON field names), for embedding as a
+// dynamic block field (e.g. hotspot image-group `details`).
+func ToMap(d Dto) map[string]any {
+	b, _ := json.Marshal(d)
+	var m map[string]any
+	_ = json.Unmarshal(b, &m)
+	return m
 }
 
 // FromGroupBySearch maps a GroupBy search record (allMeta-shaped) to a Dto.

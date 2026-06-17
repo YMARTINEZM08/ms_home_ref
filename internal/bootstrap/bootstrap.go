@@ -12,6 +12,7 @@ import (
 	"ms_home/internal/adapters/outbound/groupby"
 	"ms_home/internal/adapters/outbound/jewel"
 	"ms_home/internal/adapters/outbound/salesforce"
+	"ms_home/internal/adapters/outbound/searchfacade"
 	"ms_home/internal/application"
 	"ms_home/internal/config"
 	"ms_home/internal/observability"
@@ -39,15 +40,21 @@ func New(cfg config.Config) *App {
 		gbSearch := groupby.NewSearch(gbClient, cfg.GroupBy.SearchURL)
 		strategies = append(strategies, populate.NewProductListGroupBy(gbSearch))
 	}
+	var gbRec ports.GroupByRecommendationsPort
 	if cfg.GroupBy.RecommendationsURL != "" {
 		gbClient := httpclient.New(cfg.GroupBy.Timeout, logger)
-		gbRec := groupby.NewRecommendations(gbClient, cfg.GroupBy.RecommendationsURL)
+		gbRec = groupby.NewRecommendations(gbClient, cfg.GroupBy.RecommendationsURL)
 		strategies = append(strategies, populate.NewProductListRecentlyViewed(gbRec))
 	}
 	if cfg.Jewel.URL != "" {
 		jwClient := httpclient.New(cfg.Jewel.Timeout, logger)
 		jwAdapter := jewel.New(jwClient, cfg.Jewel.URL)
 		strategies = append(strategies, populate.NewProductListJewel(jwAdapter))
+	}
+	if cfg.SearchFacade.BaseURL != "" {
+		sfClient := httpclient.New(cfg.SearchFacade.Timeout, logger)
+		multiProduct := searchfacade.NewMultiProduct(sfClient, cfg.SearchFacade.BaseURL)
+		strategies = append(strategies, populate.NewBannerProducts(multiProduct, gbRec))
 	}
 
 	// Salesforce: greeting is always registered (its non-birthday path needs no

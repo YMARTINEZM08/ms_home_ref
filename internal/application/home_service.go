@@ -253,6 +253,14 @@ func (s *HomeService) attachWebShortcuts(ctx context.Context, ct domain.ContentT
 	if !ri.Flag("personalization") {
 		return
 	}
+
+	// `me` from the memoized cart header (gateway-model projection).
+	if ri.State != nil {
+		if chd, ok := ri.State.CartHeader(); ok {
+			page["me"] = projectMe(chd)
+		}
+	}
+
 	shortcuts := map[string]any{}
 	if cb := continueBuyingShortcut(ri); cb != nil {
 		shortcuts["continueBuying"] = cb
@@ -273,7 +281,9 @@ func (s *HomeService) loadSession(ctx context.Context) {
 		return
 	}
 	ri := domain.RequestInfoFromContext(ctx)
-	if !ri.Flag("personalization") || ri.State == nil {
+	// personalization needs the cart header (continue-buying, me); groupby needs the
+	// favorite store for banner_products multi-product pricing.
+	if ri.State == nil || (!ri.Flag("personalization") && !ri.Flag("groupby")) {
 		return
 	}
 	chd, err := s.cartHeader.GetCartHeaderDetails(ctx)

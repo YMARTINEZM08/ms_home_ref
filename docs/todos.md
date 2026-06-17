@@ -40,21 +40,29 @@
 - ATG cart-header adapter; favorite store → `RequestState.SelectedStore` (selected_store
   events resolve); `continueBuying` web shortcut.
 
-## Phase-2d remaining
-- **Login/auth**: real token-based `LoggedIn`/`ProfileID` (currently from `x-profile-id`
-  header — assumes gateway-authenticated identity). Decide auth boundary. Also: digital_bff
-  derives `isLoggedIn` from the cart header when unset — reconcile with the header source.
-- **Web `me`** (rule #9): User service `getUserInformation` = ATG cart header details
-  (already fetched in `loadSession`) + token claims (`decodeAccessToken`) projected via
-  `CartHeaderDetailsDto` (excludeExtraneousValues). Needs the JWT claims + exact field list.
-- **buy-again** (Apigee `getOrders`: POST `/generic/compras-services/orders`, `dyn-user-id`
-  + `X-Impersonate-Profile-ID`; groupby flag), **wishlist** (Apigee2 `getWishlists`:
-  GET `/digital_wish_list/wishList`, `dyn-user-id`) shortcuts.
-- **`banner_products`**: Search Facade `getMultiProductDetails` (+ favorite store, now
-  available) + GroupBy similar-items + `combineInformation` over hotspots image groups.
-- **Set-Cookie favoriteStore** side effect (getFavoriteStore echoes the store cookie) — skipped.
-- **Salesforce per-request memo**: dedupe identical action calls within one request
-  (TS caches in reqContext.cache.salesforce) — minor efficiency, currently uncached.
+## Phase-2d ✅ done
+- `me` projection (cart-header @Expose subset) attached to the web merge (rule #9 complete
+  for the gateway model). Salesforce per-request memo (dedupe identical actions).
+
+## ✅ banner_products done — all 12 populate strategies ported.
+
+## Remaining (HOME page)
+- **`me` token-claim fields**: `lastPasswordReset`, `dateOfBirth`, `enableForAlloweduser`,
+  `userIsAllowedForLoyalty`, etc. come from `decodeAccessToken`. Needs the **auth-boundary**
+  decision: gateway forwards decoded claims (as header/JSON) vs service validates the JWT.
+- **Login/auth**: real `LoggedIn`/`ProfileID` (currently `x-profile-id`). digital_bff also
+  derives `isLoggedIn` from the cart header when unset — reconcile.
+- **banner_products body nuance**: `/getMultiProduct` body sends `productIds` (the spread of
+  MultiProductDetailsDto's property; the DTO's `@Expose({name:'id'})` is inbound-only) — confirm
+  the Search Facade accepts `productIds` (vs `id`) for this outbound call.
+- **Blacklist** (product_list-groupby): wire Search Facade restricted-products endpoint.
+- **AI metrics** (`pushMetric` → clientMetadataRecords); **OTel tracing**.
+
+## Out of HOME-page scope (separate endpoint)
+- `/content/shortcuts` (web `getAllShortcuts`, pocket): buy-again (Apigee `getOrders`),
+  wishlist (Apigee2 `getWishlists`), shopping-assistant, continue-buying. Distinct inbound
+  route from the HOME page; add later if in scope.
+- **Set-Cookie favoriteStore** echo (getFavoriteStore) — skipped.
 
 ## Phase-3
 - Apigee/Apigee2 adapters: buy-again, wishlist shortcuts.

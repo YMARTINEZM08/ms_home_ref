@@ -28,12 +28,21 @@ func New(client *httpclient.Client, url string) *Adapter {
 }
 
 // GetActionFromUser POSTs the action for the current profile and decodes the payload.
+// Results are memoized per action per request (RequestState) to dedupe calls.
 func (a *Adapter) GetActionFromUser(ctx context.Context, action string) (map[string]any, error) {
 	ri := domain.RequestInfoFromContext(ctx)
 	if ri.ProfileID == "" {
 		return nil, ErrNoUserID
 	}
+	if ri.State != nil {
+		return ri.State.SalesforceAction(action, func() (map[string]any, error) {
+			return a.fetchAction(ctx, action, ri)
+		})
+	}
+	return a.fetchAction(ctx, action, ri)
+}
 
+func (a *Adapter) fetchAction(ctx context.Context, action string, ri domain.RequestInfo) (map[string]any, error) {
 	body := map[string]any{
 		"action": action,
 		"flags":  map[string]any{"noCampaigns": false},

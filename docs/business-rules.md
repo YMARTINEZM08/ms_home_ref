@@ -21,10 +21,11 @@ Status: ✅ ported | ⏳ pending.
    `RequestState.SelectedStore` (currently nil → null until favorite store lands).
 8. ✅ **Legacy Android welcome container** — injected into `screen` blocks for logged-in
    users (personalization on), after `container_shortcuts`. `content.LegacyWelcomeContainer`.
-9. 🟡 **Web personalization merge** — `shortcuts.shoppingAssistant` + `shortcuts.continueBuying`
-   (ATG cart) attached (web/page, personalization). Deferred: `me` (User service + token claims).
+9. ✅ **Web personalization merge** — `me` (cart-header projection) + `shortcuts.shoppingAssistant`
+   + `shortcuts.continueBuying` (ATG cart) attached (web/page, personalization). `me` token-claim
+   fields gateway-forwarded → omitted pending the auth-boundary decision.
 
-## 12 populate strategies — ✅ 11 of 12 ported
+## 12 populate strategies — ✅ all 12 ported
 - `container`, `countdown` (deterministic).
 - `product_list-groupby` (GroupBy search + `FromGroupBySearch`; blacklist no-op; metrics deferred).
 - `product_list-recently_viewed` (GroupBy recs + `FromGroupByRecomendation`; brand seller filter).
@@ -33,11 +34,8 @@ Status: ✅ ported | ⏳ pending.
 - `container_greeting` (personalization; birthday via Salesforce campaign check).
 - `products_cards` (Salesforce INCREDIBLE_OFFERS), `recommendation_product_list` (CAN_LIKE),
   `product_list-salesforce` (`FromSalesfroce`; min/max; campaignName/title).
-
-⏳ pending (1) — needs providers not yet read; do not invent shapes:
-- `banner_products` — Middleware `getFavoriteStore` (ATG/profile + store service) +
-  Search Facade `getMultiProductDetails` (`FromSearchFacadeProduct`) + GroupBy
-  similar-items + `combineInformation` over `hotspots_manager` image groups.
+- `banner_products` (favorite store from ATG session + Search Facade `/getMultiProduct`
+  `FromSearchFacadeProduct` + GroupBy similar-items + `combineInformation` over hotspots).
 - Salesforce: `products_cards`, `product_list-salesforce`, `recommendation_product_list`.
 - Personalization/login: `container_greeting`, `container_guest`, `container_shortcuts`.
 
