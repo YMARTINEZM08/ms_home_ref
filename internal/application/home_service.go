@@ -254,10 +254,10 @@ func (s *HomeService) attachWebShortcuts(ctx context.Context, ct domain.ContentT
 		return
 	}
 
-	// `me` from the memoized cart header (gateway-model projection).
+	// `me` from the memoized cart header overlaid with verified JWT claims.
 	if ri.State != nil {
 		if chd, ok := ri.State.CartHeader(); ok {
-			page["me"] = projectMe(chd)
+			page["me"] = projectMe(chd, ri.Claims)
 		}
 	}
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## Phase 2f — Auth boundary: service-side JWT validation
+- `internal/auth.Verifier`: RS256 JWT validation via JWKS (golang-jwt/jwt/v5 + stdlib
+  JWKS cache with throttled refresh). Rejects alg=none/HMAC, unknown kid, expired,
+  wrong issuer/audience. `AUTH_*` config.
+- Handler: when configured, identity comes only from a valid Bearer token (x-profile-id
+  ignored); else dev fallback to x-profile-id. `RequestInfo.Claims` carries JWT claims.
+- `me`: now merges token claims over the cart-header projection across the full
+  CartHeaderDetailsDto `@Expose` allowlist (claims win) — token fields
+  (lastPasswordReset, dateOfBirth, isSignUp, …) now populated.
+- Dep added: `github.com/golang-jwt/jwt/v5`.
+- Tests: verifier (valid/expired/wrong-issuer/alg-none/unknown-kid, in-memory JWKS),
+  me claims merge, handler bearer→me + dev-header path; race-tested.
+
 ## Phase 2e — banner_products (12/12 strategies)
 - `internal/product`: `FromSearchFacadeProduct` mapper.
 - Outbound `searchfacade` adapter (`/getMultiProduct`: searchFacadeConfig

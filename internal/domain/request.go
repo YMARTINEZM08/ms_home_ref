@@ -28,6 +28,9 @@ type RequestInfo struct {
 	// Cookie is the raw inbound Cookie header, forwarded to ATG.
 	Cookie string
 
+	// Claims are the verified JWT claims (empty when unauthenticated). Used by `me`.
+	Claims map[string]any
+
 	// Client metadata headers (x-client-*) forwarded to GroupBy metrics.
 	ClientPage      string
 	ClientChannel   string

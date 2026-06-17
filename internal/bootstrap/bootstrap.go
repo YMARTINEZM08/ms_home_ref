@@ -14,6 +14,7 @@ import (
 	"ms_home/internal/adapters/outbound/salesforce"
 	"ms_home/internal/adapters/outbound/searchfacade"
 	"ms_home/internal/application"
+	"ms_home/internal/auth"
 	"ms_home/internal/config"
 	"ms_home/internal/observability"
 	"ms_home/internal/populate"
@@ -82,7 +83,14 @@ func New(cfg config.Config) *App {
 	}
 
 	homeService := application.NewHomeService(contentAdapter, populateSvc, cartHeader, cfg.PersonalizationEnabled, logger)
-	handler := inhttp.NewHandler(homeService, cfg.DefaultBrand, logger)
+
+	// nil interface (not a typed-nil) when JWT validation is disabled, so the handler
+	// falls back to the x-profile-id dev header.
+	var verifier inhttp.TokenVerifier
+	if cfg.Auth.JWKSURL != "" {
+		verifier = auth.NewVerifier(cfg.Auth.JWKSURL, cfg.Auth.Issuer, cfg.Auth.Audience, cfg.Auth.Timeout)
+	}
+	handler := inhttp.NewHandler(homeService, verifier, cfg.Auth.ProfileClaim, cfg.DefaultBrand, logger)
 
 	return &App{
 		Router: inhttp.NewRouter(handler),

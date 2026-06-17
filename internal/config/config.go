@@ -28,6 +28,17 @@ type Config struct {
 	Salesforce     SalesforceConfig
 	ATG            ATGConfig
 	SearchFacade   SearchFacadeConfig
+	Auth           AuthConfig
+}
+
+// AuthConfig configures service-side JWT validation. When JWKSURL is empty, JWT
+// validation is disabled and identity falls back to the x-profile-id header (dev).
+type AuthConfig struct {
+	JWKSURL      string
+	Issuer       string
+	Audience     string
+	ProfileClaim string // claim holding the profile id (default "profileId")
+	Timeout      time.Duration
 }
 
 // SearchFacadeConfig targets the Search Facade. Optional: empty URL disables
@@ -105,6 +116,13 @@ func Load() (Config, error) {
 		SearchFacade: SearchFacadeConfig{
 			BaseURL: getEnv("SHARED_SEARCH_FACADE_URL", ""),
 			Timeout: getDuration("SHARED_SEARCH_FACADE_TIMEOUT", 5*time.Second),
+		},
+		Auth: AuthConfig{
+			JWKSURL:      getEnv("AUTH_JWKS_URL", ""),
+			Issuer:       getEnv("AUTH_ISSUER", ""),
+			Audience:     getEnv("AUTH_AUDIENCE", ""),
+			ProfileClaim: getEnv("AUTH_PROFILE_CLAIM", "profileId"),
+			Timeout:      getDuration("AUTH_TIMEOUT", 5*time.Second),
 		},
 	}
 

@@ -46,17 +46,19 @@
 
 ## ✅ banner_products done — all 12 populate strategies ported.
 
-## Remaining (HOME page)
-- **`me` token-claim fields**: `lastPasswordReset`, `dateOfBirth`, `enableForAlloweduser`,
-  `userIsAllowedForLoyalty`, etc. come from `decodeAccessToken`. Needs the **auth-boundary**
-  decision: gateway forwards decoded claims (as header/JSON) vs service validates the JWT.
-- **Login/auth**: real `LoggedIn`/`ProfileID` (currently `x-profile-id`). digital_bff also
-  derives `isLoggedIn` from the cart header when unset — reconcile.
-- **banner_products body nuance**: `/getMultiProduct` body sends `productIds` (the spread of
-  MultiProductDetailsDto's property; the DTO's `@Expose({name:'id'})` is inbound-only) — confirm
-  the Search Facade accepts `productIds` (vs `id`) for this outbound call.
+## ✅ Auth boundary settled (D8): service-side JWT validation.
+- `me` token-claim fields now populated from verified claims.
+
+## Remaining (HOME page) — confirmations & cross-cutting
+- **Auth confirmations**: exact `AUTH_PROFILE_CLAIM` name in the real IdP; whether ID/access
+  token is sent; whether downstream calls (ATG/Salesforce/Apigee) need the raw token forwarded
+  (currently only the Cookie is forwarded to ATG). digital_bff also derives `isLoggedIn` from
+  the cart header when the token doesn't set it — reconcile if needed.
+- **banner_products body nuance**: `/getMultiProduct` sends `productIds` (spread of
+  MultiProductDetailsDto; the DTO's `@Expose({name:'id'})` is inbound-only) — confirm the
+  Search Facade accepts `productIds` (vs `id`).
 - **Blacklist** (product_list-groupby): wire Search Facade restricted-products endpoint.
-- **AI metrics** (`pushMetric` → clientMetadataRecords); **OTel tracing**.
+- **AI metrics** (`pushMetric` → clientMetadataRecords); **OTel tracing**; golden-contract fixtures.
 
 ## Out of HOME-page scope (separate endpoint)
 - `/content/shortcuts` (web `getAllShortcuts`, pocket): buy-again (Apigee `getOrders`),

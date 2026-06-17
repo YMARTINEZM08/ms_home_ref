@@ -14,7 +14,8 @@ optimized for Google Cloud Run.
 - **Go 1.26+** (`go version`)
 - A reachable **Content Service** proxy URL (the existing `SHARED_CONTENT_SERVICE_URL`).
   For local work you can point at a dev proxy or a stub (see §5).
-- No third-party Go dependencies — the service is stdlib-only.
+- One third-party dependency: `github.com/golang-jwt/jwt/v5` (JWT validation). Everything
+  else is stdlib (JWKS cache, HTTP, JSON).
 
 ## 2. Configure
 Copy the sample env and adjust:
@@ -36,6 +37,9 @@ cp configs/.env.example .env
 | `SHARED_ATG_TIMEOUT` | | `5s` | ATG call timeout |
 | `SHARED_SEARCH_FACADE_URL` | | — | Search Facade; empty disables `banner_products` |
 | `SHARED_SEARCH_FACADE_TIMEOUT` | | `5s` | Search Facade call timeout |
+| `AUTH_JWKS_URL` | | — | JWKS endpoint; set = validate JWT, empty = dev (x-profile-id) |
+| `AUTH_ISSUER` / `AUTH_AUDIENCE` | | — | Validated when non-empty |
+| `AUTH_PROFILE_CLAIM` | | `profileId` | Claim holding the profile id |
 | `PORT` | | `8080` | HTTP listen port |
 | `ENV` | | `dev` | `dev`/`qa`/`staging`/`prod` |
 | `LOG_LEVEL` | | `info` | `debug` enables cURL logging of outbound calls |

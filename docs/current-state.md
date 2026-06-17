@@ -1,8 +1,13 @@
-# Current State (Phase 0 + 1a + 1b + 2a–2e complete)
+# Current State (Phase 0 + 1a + 1b + 2a–2f complete)
 
-Runnable vertical slice: HTTP → HomeService (normalize + gate + session + populate +
-events + welcome + web `me`/shortcuts) → Content Service proxy (+ GroupBy, Jewel,
-Salesforce, ATG, Search Facade). **All 12 populate strategies ported.**
+Runnable vertical slice: HTTP (JWT auth) → HomeService (normalize + gate + session +
+populate + events + welcome + web `me`/shortcuts) → Content Service proxy (+ GroupBy,
+Jewel, Salesforce, ATG, Search Facade). **All 12 populate strategies + rules #1–#9 ported.**
+
+## Implemented (Phase 2f)
+- `internal/auth.Verifier`: service-side RS256 JWT validation via JWKS (D8).
+- Handler identity from verified Bearer (dev fallback x-profile-id); `me` merges JWT claims.
+- One dep: `golang-jwt/jwt/v5`.
 
 ## Implemented (Phase 2e)
 - `banner_products`: Search Facade `/getMultiProduct` (`FromSearchFacadeProduct`) +

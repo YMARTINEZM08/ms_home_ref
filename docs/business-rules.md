@@ -21,9 +21,9 @@ Status: ✅ ported | ⏳ pending.
    `RequestState.SelectedStore` (currently nil → null until favorite store lands).
 8. ✅ **Legacy Android welcome container** — injected into `screen` blocks for logged-in
    users (personalization on), after `container_shortcuts`. `content.LegacyWelcomeContainer`.
-9. ✅ **Web personalization merge** — `me` (cart-header projection) + `shortcuts.shoppingAssistant`
-   + `shortcuts.continueBuying` (ATG cart) attached (web/page, personalization). `me` token-claim
-   fields gateway-forwarded → omitted pending the auth-boundary decision.
+9. ✅ **Web personalization merge** — `me` (cart-header projection + verified JWT claims) +
+   `shortcuts.shoppingAssistant` + `shortcuts.continueBuying` (ATG cart) attached
+   (web/page, personalization). Identity from service-side JWT validation (D8).
 
 ## 12 populate strategies — ✅ all 12 ported
 - `container`, `countdown` (deterministic).

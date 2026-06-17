@@ -27,7 +27,7 @@ inbound/http ──> application ──> domain
 ## Rules honored
 - Domain imports no infrastructure; SDK/HTTP never leak past adapters.
 - Per-request state via `context.Context` (`domain.RequestInfo`), no global mutable state.
-- stdlib only — no third-party deps (fast cold start).
+- stdlib + a single vetted dep (`golang-jwt/jwt/v5` for JWT validation).
 
 See [decisions.md](decisions.md), [current-state.md](current-state.md),
 [target-state.md](target-state.md).
