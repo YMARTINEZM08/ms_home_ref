@@ -1,0 +1,5 @@
+/.env
+/app
+/server
+*.out
+.DS_Store

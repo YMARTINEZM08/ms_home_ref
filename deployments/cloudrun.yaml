@@ -1,0 +1,45 @@
+# Cloud Run service manifest (knative). Replace IMAGE and env values per environment.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ms-home
+  labels:
+    app: ms-home
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "100"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 30
+      containers:
+        - image: IMAGE # e.g. REGION-docker.pkg.dev/PROJECT/repo/ms-home:TAG
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 256Mi
+          env:
+            - name: ENV
+              value: prod
+            - name: LOG_LEVEL
+              value: info
+            - name: DEFAULT_BRAND
+              value: LP
+            - name: PERSONALIZATION_ENABLED
+              value: "true"
+            - name: SHARED_CONTENT_SERVICE_URL
+              value: https://content-service.prod.example.com
+            - name: SHARED_CONTENT_SERVICE_TIMEOUT
+              value: 5s
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
