@@ -40,6 +40,8 @@ cp configs/.env.example .env
 | `AUTH_JWKS_URL` | | — | JWKS endpoint; set = validate JWT, empty = dev (x-profile-id) |
 | `AUTH_ISSUER` / `AUTH_AUDIENCE` | | — | Validated when non-empty |
 | `AUTH_PROFILE_CLAIM` | | `profileId` | Claim holding the profile id |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | | — | Set to export traces via OTLP; empty = propagation-only |
+| `OTEL_SERVICE_NAME` | | `ms_home` | Trace service name |
 | `PORT` | | `8080` | HTTP listen port |
 | `ENV` | | `dev` | `dev`/`qa`/`staging`/`prod` |
 | `LOG_LEVEL` | | `info` | `debug` enables cURL logging of outbound calls |
@@ -101,6 +103,20 @@ SHARED_CONTENT_SERVICE_URL=http://127.0.0.1:9099 PERSONALIZATION_ENABLED=true go
 docker build -f deployments/Dockerfile -t ms-home .   # distroless, static binary
 # Cloud Run: see deployments/cloudrun.yaml (set IMAGE + env per environment)
 ```
+
+## 6b. Observability
+Structured `slog` logs on every outbound call (method/url/status/latency, secrets masked,
+cURL at DEBUG). OpenTelemetry tracing: an inbound server span + outbound client spans with
+W3C trace-context propagation; exports via OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set,
+otherwise propagation-only (zero export overhead). Health: `/healthz`, `/readyz`.
+
+## 6c. Parity testing (golden-contract)
+Capture real responses from both services and diff them structurally:
+```sh
+DIGITAL_BFF=… MS_HOME=… AUTH="Bearer …" ./scripts/capture-fixtures.sh
+go test ./test/contract -run HomeParity
+```
+See [test/contract/README.md](test/contract/README.md).
 
 ## 7. Architecture & docs
 Hexagonal layout and rationale: [docs/architecture.md](docs/architecture.md).

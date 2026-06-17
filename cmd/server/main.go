@@ -54,5 +54,10 @@ func main() {
 		log.Error("graceful shutdown failed", "error", err.Error())
 		os.Exit(1)
 	}
+	if app.Shutdown != nil {
+		if err := app.Shutdown(shutdownCtx); err != nil {
+			log.Error("tracing shutdown failed", "error", err.Error())
+		}
+	}
 	log.Info("server stopped")
 }

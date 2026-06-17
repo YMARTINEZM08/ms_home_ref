@@ -3,6 +3,7 @@
 package bootstrap
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -24,13 +25,21 @@ import (
 
 // App holds the constructed, ready-to-serve components.
 type App struct {
-	Router *http.ServeMux
-	Logger *slog.Logger
+	Router   http.Handler
+	Logger   *slog.Logger
+	Shutdown func(context.Context) error // flushes tracing on exit
 }
 
 // New constructs the dependency graph from configuration.
 func New(cfg config.Config) *App {
 	logger := observability.NewLogger(cfg.LogLevel)
+
+	tracingShutdown, err := observability.InitTracing(
+		context.Background(), cfg.Tracing.ServiceName, cfg.Env, cfg.Tracing.Enabled)
+	if err != nil {
+		logger.Error("tracing init failed", "error", err.Error())
+		tracingShutdown = func(context.Context) error { return nil }
+	}
 
 	csClient := httpclient.New(cfg.ContentService.Timeout, logger)
 	contentAdapter := contentservice.New(csClient, cfg.ContentService.BaseURL)
@@ -93,7 +102,8 @@ func New(cfg config.Config) *App {
 	handler := inhttp.NewHandler(homeService, verifier, cfg.Auth.ProfileClaim, cfg.DefaultBrand, logger)
 
 	return &App{
-		Router: inhttp.NewRouter(handler),
-		Logger: logger,
+		Router:   inhttp.NewRouter(handler),
+		Logger:   logger,
+		Shutdown: tracingShutdown,
 	}
 }

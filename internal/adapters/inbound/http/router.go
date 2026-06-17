@@ -2,8 +2,8 @@ package http
 
 import "net/http"
 
-// NewRouter registers HOME routes and health checks on a stdlib ServeMux.
-func NewRouter(h *Handler) *http.ServeMux {
+// NewRouter registers HOME routes and health checks, wrapped with tracing.
+func NewRouter(h *Handler) http.Handler {
 	mux := http.NewServeMux()
 
 	// HOME content (web "page", pocket "screen"). The {path...} wildcard captures
@@ -15,7 +15,7 @@ func NewRouter(h *Handler) *http.ServeMux {
 	mux.HandleFunc("GET /healthz", health)
 	mux.HandleFunc("GET /readyz", health)
 
-	return mux
+	return traceMiddleware(mux)
 }
 
 func health(w http.ResponseWriter, _ *http.Request) {

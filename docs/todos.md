@@ -58,7 +58,10 @@
   MultiProductDetailsDto; the DTO's `@Expose({name:'id'})` is inbound-only) — confirm the
   Search Facade accepts `productIds` (vs `id`).
 - **Blacklist** (product_list-groupby): wire Search Facade restricted-products endpoint.
-- **AI metrics** (`pushMetric` → clientMetadataRecords); **OTel tracing**; golden-contract fixtures.
+- **AI metrics** (`pushMetric` → clientMetadataRecords); **OTel metrics** (tracing ✅ done).
+- **Golden-contract fixtures**: run `scripts/capture-fixtures.sh` against QA (needs both
+  services live) and commit the captured pairs; the harness diffs them.
+- **Cutover prep**: gateway route flag / canary ramp; Cloud Run autoscaling tuning; benchmarks.
 
 ## Out of HOME-page scope (separate endpoint)
 - `/content/shortcuts` (web `getAllShortcuts`, pocket): buy-again (Apigee `getOrders`),

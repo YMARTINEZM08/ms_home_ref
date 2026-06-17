@@ -1,8 +1,15 @@
-# Current State (Phase 0 + 1a + 1b + 2a–2f complete)
+# Current State (Phase 0 + 1a + 1b + 2a–2f + 3a complete)
 
-Runnable vertical slice: HTTP (JWT auth) → HomeService (normalize + gate + session +
-populate + events + welcome + web `me`/shortcuts) → Content Service proxy (+ GroupBy,
-Jewel, Salesforce, ATG, Search Facade). **All 12 populate strategies + rules #1–#9 ported.**
+Runnable vertical slice: HTTP (JWT auth + tracing) → HomeService (normalize + gate +
+session + populate + events + welcome + web `me`/shortcuts) → Content Service proxy
+(+ GroupBy, Jewel, Salesforce, ATG, Search Facade). **All 12 populate strategies +
+rules #1–#9 ported.**
+
+## Implemented (Phase 3a — observability & parity tooling)
+- OTel tracing: inbound server span + outbound client spans + W3C propagation;
+  OTLP export when configured, else propagation-only. Graceful flush on shutdown.
+- `scripts/capture-fixtures.sh` for the golden-contract harness.
+- Deps: golang-jwt + OpenTelemetry SDK/OTLP.
 
 ## Implemented (Phase 2f)
 - `internal/auth.Verifier`: service-side RS256 JWT validation via JWKS (D8).

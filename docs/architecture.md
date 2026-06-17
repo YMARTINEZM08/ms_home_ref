@@ -20,7 +20,7 @@ inbound/http ──> application ──> domain
 | `internal/adapters/inbound/http` | handler + router (stdlib ServeMux) |
 | `internal/adapters/outbound/contentservice` | Content Service proxy client |
 | `internal/config` | env-driven configuration |
-| `internal/observability` | slog logger (OTel tracing: TODO) |
+| `internal/observability` | slog logger + OTel tracing (OTLP exporter, W3C propagation) |
 | `internal/bootstrap` | compile-time dependency wiring |
 | `pkg/httpclient` | shared HTTP client (keep-alive, logging, cURL@debug, masking) |
 

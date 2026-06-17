@@ -1,5 +1,17 @@
 # Changelog
 
+## Phase 3a — Observability (OTel tracing) & parity tooling
+- `observability.InitTracing`: W3C propagation always; OTLP exporter when
+  `OTEL_EXPORTER_OTLP_ENDPOINT` set (else propagation-only, no-op tracer). Graceful
+  shutdown flush wired through `App.Shutdown` → main.
+- Inbound `traceMiddleware`: server span per request (skips health), status attribute.
+- `pkg/httpclient`: client span per outbound call + traceparent injection + attributes
+  (method/url/server.address/status); spans no-op unless a provider is installed.
+- Deps added: OpenTelemetry SDK + OTLP/HTTP exporter.
+- `scripts/capture-fixtures.sh`: capture digital_bff vs ms_home responses for the
+  golden-contract harness (web/pocket × anon/preview/logged).
+- Tests: propagation extract/inject; e2e verified trace id flows to the downstream.
+
 ## Phase 2f — Auth boundary: service-side JWT validation
 - `internal/auth.Verifier`: RS256 JWT validation via JWKS (golang-jwt/jwt/v5 + stdlib
   JWKS cache with throttled refresh). Rejects alg=none/HMAC, unknown kid, expired,

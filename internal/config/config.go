@@ -29,6 +29,14 @@ type Config struct {
 	ATG            ATGConfig
 	SearchFacade   SearchFacadeConfig
 	Auth           AuthConfig
+	Tracing        TracingConfig
+}
+
+// TracingConfig controls OpenTelemetry tracing. Enabled when an OTLP endpoint is
+// configured (standard OTEL_EXPORTER_OTLP_ENDPOINT); otherwise propagation-only.
+type TracingConfig struct {
+	Enabled     bool
+	ServiceName string
 }
 
 // AuthConfig configures service-side JWT validation. When JWKSURL is empty, JWT
@@ -123,6 +131,10 @@ func Load() (Config, error) {
 			Audience:     getEnv("AUTH_AUDIENCE", ""),
 			ProfileClaim: getEnv("AUTH_PROFILE_CLAIM", "profileId"),
 			Timeout:      getDuration("AUTH_TIMEOUT", 5*time.Second),
+		},
+		Tracing: TracingConfig{
+			Enabled:     getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "") != "",
+			ServiceName: getEnv("OTEL_SERVICE_NAME", "ms_home"),
 		},
 	}
 
