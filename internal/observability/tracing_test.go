@@ -9,7 +9,7 @@ import (
 )
 
 func TestInitTracingDisabledSetsPropagator(t *testing.T) {
-	shutdown, err := InitTracing(context.Background(), "ms_home", "test", false)
+	shutdown, err := InitTracing(context.Background(), "ms_home", "v1", "test", false)
 	if err != nil {
 		t.Fatalf("init: %v", err)
 	}

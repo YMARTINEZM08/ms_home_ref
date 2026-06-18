@@ -20,6 +20,19 @@ request (HOME still served, personalization off). With `AUTH_JWKS_URL` empty the
 service runs in **dev mode**: identity from the `x-profile-id` header. JWT claims feed
 the `me` projection (claims override cart-header fields per the `@Expose` allowlist).
 
+### ⚠️ Divergence from digital_bff (reconcile before cutover)
+digital_bff does **not** validate JWTs locally. Clients send an **opaque session cookie**
+(`COOKIE_NAME`); `OpaqueTokenMiddleware` exchanges it at an Auth0-backed service
+(`GET /v2/auth/exchange-token`, per-brand client) which returns decoded claims; profileId =
+`decodeAccessToken.prn`, `isLoggedIn = !isAnonymous`. ms_home (D8) instead expects a
+**Bearer JWT** and verifies it locally. Implications:
+- **Transport mismatch**: existing clients send an opaque cookie, not a JWT. ms_home needs an
+  upstream **opaque→JWT exchange** (gateway/auth service) in front, OR D8 must be revisited to
+  call the same exchange endpoint. Without that, cookie-based clients won't authenticate.
+- **Claim name**: set `AUTH_PROFILE_CLAIM=prn` to match digital_bff.
+- **Not ported** (out of HOME scope): per-brand Auth0 clients, CSC agent path (`x-cs-folio-id`),
+  impersonation, cookie-clear/400 on invalid token.
+
 ## Personalization flag rule (preserved)
 Effective personalization = `PERSONALIZATION_ENABLED` (env gate) **AND** CMS
 `feature_flags.personalization`. Implemented in `HomeService.mergeFeatureFlags`.

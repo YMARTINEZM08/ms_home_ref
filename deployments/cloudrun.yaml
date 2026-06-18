@@ -9,7 +9,8 @@ spec:
   template:
     metadata:
       annotations:
-        autoscaling.knative.dev/minScale: "0"
+        # Keep >=1 warm during canary/ramp to avoid cold starts on low canary weight.
+        autoscaling.knative.dev/minScale: "1"
         autoscaling.knative.dev/maxScale: "100"
     spec:
       containerConcurrency: 80
@@ -21,10 +22,12 @@ spec:
           resources:
             limits:
               cpu: "1"
-              memory: 256Mi
+              memory: 256Mi # tune from load test; stdlib service is lean
           env:
             - name: ENV
               value: prod
+            - name: BUILD_VERSION
+              value: TAG # set to the image tag/revision for canary identification
             - name: LOG_LEVEL
               value: info
             - name: DEFAULT_BRAND
@@ -35,6 +38,19 @@ spec:
               value: https://content-service.prod.example.com
             - name: SHARED_CONTENT_SERVICE_TIMEOUT
               value: 5s
+            # Optional providers (empty disables the matching strategy). See configs/.env.example.
+            # - { name: SHARED_GROUPBY_SEARCH_URL, value: ... }
+            # - { name: SHARED_GROUPBY_RECOMMENDATIONS_URL, value: ... }
+            # - { name: SHARED_JEWEL_URL, value: ... }
+            # - { name: SALESFORCE_MODULE_HTTP, value: ... }
+            # - { name: SHARED_ATG_CART_HEADER_URL, value: ... }
+            # - { name: SHARED_SEARCH_FACADE_URL, value: ... }
+            # Auth (prod): validate JWTs. Empty JWKS = dev (x-profile-id header).
+            # - { name: AUTH_JWKS_URL, value: ... }
+            # - { name: AUTH_ISSUER, value: ... }
+            # - { name: AUTH_AUDIENCE, value: ... }
+            # Tracing: set to export spans via OTLP.
+            # - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: ... }
           startupProbe:
             httpGet:
               path: /readyz

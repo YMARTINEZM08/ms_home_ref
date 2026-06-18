@@ -35,7 +35,7 @@ func New(cfg config.Config) *App {
 	logger := observability.NewLogger(cfg.LogLevel)
 
 	tracingShutdown, err := observability.InitTracing(
-		context.Background(), cfg.Tracing.ServiceName, cfg.Env, cfg.Tracing.Enabled)
+		context.Background(), cfg.Tracing.ServiceName, cfg.Version, cfg.Env, cfg.Tracing.Enabled)
 	if err != nil {
 		logger.Error("tracing init failed", "error", err.Error())
 		tracingShutdown = func(context.Context) error { return nil }
@@ -102,7 +102,7 @@ func New(cfg config.Config) *App {
 	handler := inhttp.NewHandler(homeService, verifier, cfg.Auth.ProfileClaim, cfg.DefaultBrand, logger)
 
 	return &App{
-		Router:   inhttp.NewRouter(handler),
+		Router:   inhttp.NewRouter(handler, cfg.Version),
 		Logger:   logger,
 		Shutdown: tracingShutdown,
 	}

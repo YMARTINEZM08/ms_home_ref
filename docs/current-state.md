@@ -5,11 +5,17 @@ session + populate + events + welcome + web `me`/shortcuts) → Content Service 
 (+ GroupBy, Jewel, Salesforce, ATG, Search Facade). **All 12 populate strategies +
 rules #1–#9 ported.**
 
-## Implemented (Phase 3a — observability & parity tooling)
+## Implemented (Phase 3 — observability & cutover)
 - OTel tracing: inbound server span + outbound client spans + W3C propagation;
   OTLP export when configured, else propagation-only. Graceful flush on shutdown.
 - `scripts/capture-fixtures.sh` for the golden-contract harness.
+- `BUILD_VERSION` stamp in `/healthz`, startup log, trace `service.version` (canary id).
+- Cutover runbook ([rollout.md](rollout.md)) + gateway-routing/Cloud Run manifests.
 - Deps: golang-jwt + OpenTelemetry SDK/OTLP.
+
+## Remaining = ops execution (need live QA)
+Capture golden fixtures vs QA → shadow → canary ramp → 100% → decommission HOME in
+digital_bff. Plus team confirmations (IdP claims, banner_products body key) and OTel metrics.
 
 ## Implemented (Phase 2f)
 - `internal/auth.Verifier`: service-side RS256 JWT validation via JWKS (D8).

@@ -3,19 +3,18 @@
 Evolutionary, never big-bang. Each phase is independently deployable and reversible
 (gateway route flag / per-request personalization flag → instant rollback to digital_bff).
 
-- **Phase 0 — Scaffold ✅ (current).** Hexagonal skeleton, config, httpclient (cURL@debug,
-  masking), slog, health checks, graceful shutdown, CS-proxy adapter, parallel fetch +
-  flag merge, tests, Dockerfile, Cloud Run manifest. *Golden-contract harness: pending.*
-- **Phase 1 — Read-only HOME content (no personalization).** Normalization, content-type
-  gating, non-personalized populate strategies, GroupBy + Category Indexer adapters.
-  Anonymous traffic behind a flag; diff vs golden fixtures.
-- **Phase 2 — Personalization core.** Login + Middleware/Salesforce/ATG/User adapters;
-  greeting/guest/shortcuts/recommendation/salesforce strategies; custom events; web
-  `me`/`shortcuts`; legacy Android welcome. Logged-in canary.
-- **Phase 3 — Shortcuts breadth.** Apigee/Apigee2: buy-again, wishlist. Full parity.
-- **Phase 4 — Cutover & hardening.** Ramp to 100%, benchmarks, tune timeouts/pools,
-  autoscaling, decommission HOME path in digital_bff.
+- **Phase 0 — Scaffold ✅.** Hexagonal skeleton, config, httpclient (cURL@debug, masking),
+  slog, health, graceful shutdown, CS-proxy adapter, parallel fetch + flag merge.
+- **Phase 1 — Read-only HOME ✅.** Normalization, content-type gating, populate framework;
+  GroupBy (search/recs) + Jewel strategies (1a/1b). Golden-contract harness scaffolded.
+- **Phase 2 — Personalization ✅.** container_guest/shortcuts/greeting, Salesforce strategies
+  (2a); custom-data events + welcome container (2b); ATG favorite store + continue-buying (2c);
+  `me` + Salesforce memo (2d); banner_products → 12/12 strategies (2e); service-side JWT auth (2f).
+- **Phase 3 — Observability & cutover ✅ (code).** OTel tracing + parity tooling (3a);
+  build-version stamp, rollout runbook, gateway-routing + Cloud Run manifests (3b).
+- **Phase 4 — Cutover execution (ops).** Capture golden fixtures vs QA, shadow + canary ramp
+  per [rollout.md](rollout.md), tune autoscaling/benchmarks, decommission HOME in digital_bff.
 
-Web ships before pocket within each phase.
+Business rules #1–#9 ported; all 12 populate strategies ported. Web/pocket shift independently.
 
-See [todos.md](todos.md), [risks.md](risks.md), [business-rules.md](business-rules.md).
+See [rollout.md](rollout.md), [todos.md](todos.md), [risks.md](risks.md), [business-rules.md](business-rules.md).

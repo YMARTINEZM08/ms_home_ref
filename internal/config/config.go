@@ -14,6 +14,7 @@ type Config struct {
 	Env      string // dev | qa | staging | prod
 	Port     string
 	LogLevel string // debug | info | warn | error
+	Version  string // build/revision id (canary identification)
 
 	// DefaultBrand is used when the inbound request omits x-brand-id.
 	DefaultBrand string
@@ -98,6 +99,7 @@ func Load() (Config, error) {
 		Env:                    getEnv("ENV", "dev"),
 		Port:                   getEnv("PORT", "8080"),
 		LogLevel:               getEnv("LOG_LEVEL", "info"),
+		Version:                getEnv("BUILD_VERSION", "dev"),
 		DefaultBrand:           getEnv("DEFAULT_BRAND", "LP"),
 		PersonalizationEnabled: getBool("PERSONALIZATION_ENABLED", false),
 		ContentService: ContentServiceConfig{

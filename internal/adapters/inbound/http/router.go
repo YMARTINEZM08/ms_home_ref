@@ -3,7 +3,8 @@ package http
 import "net/http"
 
 // NewRouter registers HOME routes and health checks, wrapped with tracing.
-func NewRouter(h *Handler) http.Handler {
+// version is echoed by the health probes to identify the running revision (canary).
+func NewRouter(h *Handler, version string) http.Handler {
 	mux := http.NewServeMux()
 
 	// HOME content (web "page", pocket "screen"). The {path...} wildcard captures
@@ -12,13 +13,18 @@ func NewRouter(h *Handler) http.Handler {
 	mux.HandleFunc("GET /content/{contentType}/{locale}/{path...}", h.GetContent)
 
 	// Cloud Run health probes.
+	health := healthHandler(version)
 	mux.HandleFunc("GET /healthz", health)
 	mux.HandleFunc("GET /readyz", health)
 
 	return traceMiddleware(mux)
 }
 
-func health(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(`{"status":"ok"}`))
+func healthHandler(version string) http.HandlerFunc {
+	body := []byte(`{"status":"ok","version":"` + version + `"}`)
+	return func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(body)
+	}
 }

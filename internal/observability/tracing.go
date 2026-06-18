@@ -15,7 +15,7 @@ import (
 // trace exporter (configured via standard OTEL_EXPORTER_OTLP_* env vars). It returns
 // a shutdown func. When disabled, only propagation is set up and the global tracer
 // stays a no-op (zero cost), so inbound traceparent still flows to downstreams.
-func InitTracing(ctx context.Context, serviceName, env string, enabled bool) (func(context.Context) error, error) {
+func InitTracing(ctx context.Context, serviceName, version, env string, enabled bool) (func(context.Context) error, error) {
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{}, propagation.Baggage{},
 	))
@@ -30,6 +30,7 @@ func InitTracing(ctx context.Context, serviceName, env string, enabled bool) (fu
 	}
 	res := resource.NewSchemaless(
 		attribute.String("service.name", serviceName),
+		attribute.String("service.version", version),
 		attribute.String("deployment.environment", env),
 	)
 	tp := sdktrace.NewTracerProvider(

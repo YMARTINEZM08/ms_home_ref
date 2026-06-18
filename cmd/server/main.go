@@ -38,7 +38,7 @@ func main() {
 	defer stop()
 
 	go func() {
-		log.Info("server starting", "port", cfg.Port, "env", cfg.Env)
+		log.Info("server starting", "port", cfg.Port, "env", cfg.Env, "version", cfg.Version)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("server error", "error", err.Error())
 			os.Exit(1)

@@ -1,5 +1,13 @@
 # Changelog
 
+## Phase 3b — Cutover mechanics
+- `BUILD_VERSION` stamp: echoed by `/healthz` `/readyz` (`{"status","version"}`), startup
+  log, and the `service.version` trace attribute — identifies the canary revision.
+- `docs/rollout.md`: cutover runbook (routing options, pre-cutover gates, canary stages
+  0→1→5→25→50→100, gate signals, instant weight→0 rollback).
+- `deployments/gateway-routing.example.yaml`: weighted HOME backend split (GCLB sketch).
+- `deployments/cloudrun.yaml`: minScale 1 for canary, BUILD_VERSION, provider/auth/OTEL env stubs.
+
 ## Phase 3a — Observability (OTel tracing) & parity tooling
 - `observability.InitTracing`: W3C propagation always; OTLP exporter when
   `OTEL_EXPORTER_OTLP_ENDPOINT` set (else propagation-only, no-op tracer). Graceful

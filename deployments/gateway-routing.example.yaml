@@ -1,0 +1,34 @@
+# Example: weighted HOME routing between digital_bff and ms_home at the edge
+# (GCLB URL map sketch). The single rollback lever is the ms-home weight → 0.
+# Adapt to your actual gateway (GCLB, Apigee, Istio VirtualService, etc.).
+#
+# Canary stages (see docs/rollout.md): 0 (shadow) → 1 → 5 → 25 → 50 → 100.
+
+# URL map: route the HOME content path to a weighted backend, everything else stays
+# on digital_bff.
+hostRules:
+  - hosts: ["www.liverpool.com.mx"]
+    pathMatcher: home-split
+
+pathMatchers:
+  - name: home-split
+    defaultService: BACKEND_DIGITAL_BFF # all non-HOME traffic
+    routeRules:
+      - priority: 1
+        matchRules:
+          # HOME page (web) and screen (pocket). Tighten the regex to the exact
+          # HOME slug if other /content/* paths must stay on digital_bff.
+          - prefixMatch: /content/page/
+          - prefixMatch: /content/screen/
+        routeAction:
+          weightedBackendServices:
+            - backendService: BACKEND_DIGITAL_BFF
+              weight: 99   # <- shift these two weights to ramp
+            - backendService: BACKEND_MS_HOME
+              weight: 1
+
+# Notes:
+# - Forward the user's Authorization/Cookie and x-* headers to both backends.
+# - Propagate traceparent (W3C) so spans link across the gateway → ms_home → downstreams.
+# - Health checks: BACKEND_MS_HOME → GET /healthz (returns {"status","version"}).
+# - Rollback: set BACKEND_MS_HOME weight to 0 (digital_bff to 100). Stateless, instant.

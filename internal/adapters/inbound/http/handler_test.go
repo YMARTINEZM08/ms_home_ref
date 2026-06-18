@@ -49,7 +49,7 @@ func TestHandlerJWTIdentityAndMe(t *testing.T) {
 	home := application.NewHomeService(content, pop, cart, true, discard)
 
 	verifier := fakeVerifier{claims: map[string]any{"profileId": "p9", "lastPasswordReset": "2026"}}
-	mux := NewRouter(NewHandler(home, verifier, "profileId", "LP", discard))
+	mux := NewRouter(NewHandler(home, verifier, "profileId", "LP", discard), "test")
 
 	req := httptest.NewRequest(http.MethodGet, "/content/page/es-mx/", nil)
 	req.Header.Set("Authorization", "Bearer any-token")
@@ -86,7 +86,7 @@ func TestHandlerNoVerifierUsesHeader(t *testing.T) {
 	}}
 	pop := populate.NewService(populate.NewRegistry(), discard)
 	home := application.NewHomeService(content, pop, nil, true, discard)
-	mux := NewRouter(NewHandler(home, nil, "profileId", "LP", discard)) // dev mode
+	mux := NewRouter(NewHandler(home, nil, "profileId", "LP", discard), "test") // dev mode
 
 	req := httptest.NewRequest(http.MethodGet, "/content/page/es-mx/", nil)
 	req.Header.Set("x-profile-id", "dev-1")
