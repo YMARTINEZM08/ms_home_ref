@@ -35,13 +35,20 @@ func TestProjectMe(t *testing.T) {
 	}
 }
 
-func TestProjectMeOmitsAbsent(t *testing.T) {
+func TestProjectMeDefaultsAndGuest(t *testing.T) {
+	// Guest cart header: getUserInfo-style defaults must still appear.
 	me := projectMe(map[string]any{"isLoggedIn": false}, nil)
-	if _, ok := me["email"]; ok {
-		t.Error("email omitted when login absent")
+	if me["email"] != "" || me["firstName"] != "" || me["profileId"] != "" {
+		t.Errorf("string fields should default to \"\": %v", me)
+	}
+	if me["isGuest"] != true || me["isLoggedIn"] != false {
+		t.Errorf("isGuest should be !isLoggedIn: %v", me)
 	}
 	if _, ok := me["favoriteStore"]; ok {
 		t.Error("favoriteStore omitted when absent")
+	}
+	if _, ok := me["gender"]; ok {
+		t.Error("conditional field gender omitted when absent")
 	}
 }
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## Phase 3d — Live parity E2E vs digital_bff (web HOME, logged-in)
+Ran ms_home against the **real** backends (Content Service, Auth opaque exchange, ATG)
+and diffed `GET /content/page/es-mx/tienda/home` vs digital_bff :3000.
+- ✅ Top-level keys 100% match; `me` 14/14 keys + zero value diffs; `shortcuts {}` match;
+  `globalData.feature_flags` exactly equal; opaque auth resolved `prn` end-to-end.
+- Fixes from findings:
+  - `shortcuts` now always emitted (even empty), matching the web controller.
+  - `projectMe` mirrors `getUserInfo` defaulting: string fields default to "",
+    `isGuest = !isLoggedIn`, conditional fields only when present (was omitting absent keys).
+- ⏳ Remaining gap: carousel population — `products_list`/`banner_products` need the
+  GroupBy/Salesforce/Jewel adapters to send provider-level config (auth headers,
+  `area`/`collection`, path prefixes) and to be configured. Until then those blocks pass
+  through raw. See todos.md.
+
 ## Phase 3c — Opaque-token auth mode (digital_bff parity)
 - `auth.ExchangeAdapter`: `GET /v2/auth/exchange-token?{cookie}={session}` + `x-brand-id`,
   returns `decodeAccessToken` (prn, isAnonymous, isSignUp, …). Mirrors AuthProvider.exchangeToken.

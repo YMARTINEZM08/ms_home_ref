@@ -261,6 +261,8 @@ func (s *HomeService) attachWebShortcuts(ctx context.Context, ct domain.ContentT
 		}
 	}
 
+	// shortcuts is always present (possibly empty), mirroring the web controller which
+	// returns shortcuts:{continueBuying?, shoppingAssistant?} where each may be undefined.
 	shortcuts := map[string]any{}
 	if cb := continueBuyingShortcut(ri); cb != nil {
 		shortcuts["continueBuying"] = cb
@@ -268,9 +270,7 @@ func (s *HomeService) attachWebShortcuts(ctx context.Context, ct domain.ContentT
 	if sa := shoppingAssistantShortcut(ri); sa != nil {
 		shortcuts["shoppingAssistant"] = sa
 	}
-	if len(shortcuts) > 0 {
-		page["shortcuts"] = shortcuts
-	}
+	page["shortcuts"] = shortcuts
 }
 
 // loadSession fetches the ATG cart header once per request (personalization only),

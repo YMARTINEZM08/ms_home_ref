@@ -49,6 +49,18 @@
 ## ✅ Auth boundary settled (D8): service-side JWT validation.
 - `me` token-claim fields now populated from verified claims.
 
+## ⚠️ Top parity gap (from live E2E) — carousel population
+GroupBy/Salesforce/Jewel/Search-Facade outbound adapters were built from the *strategy*
+request shapes, but the digital_bff **providers** add provider-level config that ms_home
+does not yet send. Without it those calls fail (or aren't configured), so `products_list` /
+`banner_products` blocks pass through raw instead of being populated+filtered. To close:
+- GroupBy: `Authorization: client-key …`, `X-Groupby-Customer-ID`, body `area`
+  (per-brand, e.g. `ProductionLiverpool`) + `collection=productionproduct`; confirm path
+  (`/api/recommendation`, search path) and host (`recsapi.liverpool.groupbycloud.com`).
+- Salesforce / ATG / Search Facade: confirm host+path prefixes and any auth headers from
+  digital_bff `.env` (`SHARED_*`), then thread them through the adapters/config.
+- Verify with the parity harness once configured.
+
 ## Remaining (HOME page) — confirmations & cross-cutting
 - ✅ **Auth transport resolved**: opaque mode (`AUTH_OPAQUE_EXCHANGE_URL`) matches digital_bff's
   cookie exchange; local JWT and dev-header modes also available (D8). Set the env per environment.

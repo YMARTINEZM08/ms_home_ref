@@ -1,8 +1,8 @@
 package application
 
-// exposeFields is the full @Expose allowlist of CartHeaderDetailsDto (atg-user.ts).
-// `me` projects the merge of the cart header and the JWT claims through this set
-// (claims win, mirroring `{...cartHeaderDetails, ...decodeAccessToken}`).
+// exposeFields is the full @Expose allowlist of CartHeaderDetailsDto (atg-user.ts),
+// used to overlay JWT claims onto `me` (claims win, mirroring
+// `{...cartHeaderDetails, ...decodeAccessToken}` projected with excludeExtraneousValues).
 var exposeFields = []string{
 	"isLoggedIn", "cartCount", "lastPasswordReset", "favoriteStore",
 	"firstName_full", "firstName", "lastName", "maternalName", "gender", "email",
@@ -12,43 +12,45 @@ var exposeFields = []string{
 	"prn", "isGuest",
 }
 
-// cartHeaderFields are the @Expose fields sourced (directly) from the cart header,
-// copied verbatim. email and favoriteStore are remapped/sub-projected separately.
-var cartHeaderFields = []string{
-	"isLoggedIn", "cartCount", "firstName_full", "firstName", "lastName",
-	"maternalName", "gender", "gtmUserId", "profileId",
-	"enableLoyaltyCoupons", "enableLoyaltyForUser", "enrollOnAccountCreation",
-	"displayLoyaltyWelcomeModal",
+// meStringDefaults are cart-header fields MiddlewareService.getUserInfo emits with a
+// `?? ”` default — so `me` always carries them (as "" when the cart header is a guest).
+var meStringDefaults = []string{
+	"firstName_full", "firstName", "lastName", "maternalName", "gtmUserId", "profileId",
+}
+
+// meConditional are cart-header @Expose fields getUserInfo assigns without a default,
+// so they appear only when present in the cart header.
+var meConditional = []string{
+	"gender", "enableLoyaltyCoupons", "enableLoyaltyForUser", "enrollOnAccountCreation",
+	"displayLoyaltyWelcomeModal", "lastPasswordReset", "dateOfBirth",
+	"enableForAlloweduser", "userIsAllowedForLoyalty",
 }
 
 // projectMe builds `me` from the ATG cart header overlaid with JWT claims, mirroring
 // UserService.getUserInformation → CartHeaderDetailsDto (excludeExtraneousValues).
-// Remaps from MiddlewareService.getUserInfo: email = cart header `login`;
-// favoriteStore → its @Expose subset {storeName, id}.
+// getUserInfo remaps: email = cart header `login`; isGuest = !isLoggedIn; names/ids
+// default to ""; favoriteStore → its @Expose subset {storeName, id}.
 func projectMe(chd map[string]any, claims map[string]any) map[string]any {
-	base := cartHeaderBase(chd)
-
 	me := make(map[string]any, len(exposeFields))
-	for _, f := range exposeFields {
-		if v, ok := claims[f]; ok { // claims win
-			me[f] = v
-		} else if v, ok := base[f]; ok {
-			me[f] = v
-		}
-	}
-	return me
-}
 
-// cartHeaderBase projects the cart-header-sourced @Expose fields (with remaps).
-func cartHeaderBase(chd map[string]any) map[string]any {
-	base := make(map[string]any, len(cartHeaderFields)+2)
-	for _, f := range cartHeaderFields {
-		if v, ok := chd[f]; ok {
-			base[f] = v
-		}
+	for _, f := range meStringDefaults {
+		me[f] = strOrEmpty(chd[f])
 	}
-	if login, ok := chd["login"]; ok {
-		base["email"] = login
+	me["email"] = strOrEmpty(chd["login"])
+
+	loggedIn := boolOrFalse(chd["isLoggedIn"])
+	if _, ok := chd["isLoggedIn"]; ok {
+		me["isLoggedIn"] = loggedIn
+	}
+	me["isGuest"] = !loggedIn
+	if v, ok := chd["cartCount"]; ok {
+		me["cartCount"] = v
+	}
+
+	for _, f := range meConditional {
+		if v, ok := chd[f]; ok {
+			me[f] = v
+		}
 	}
 	if fav, ok := chd["favoriteStore"].(map[string]any); ok {
 		store := map[string]any{}
@@ -58,7 +60,26 @@ func cartHeaderBase(chd map[string]any) map[string]any {
 		if v, ok := fav["id"]; ok {
 			store["id"] = v
 		}
-		base["favoriteStore"] = store
+		me["favoriteStore"] = store
 	}
-	return base
+
+	// Overlay JWT claims for any @Expose field present (claims win).
+	for _, f := range exposeFields {
+		if v, ok := claims[f]; ok {
+			me[f] = v
+		}
+	}
+	return me
+}
+
+func strOrEmpty(v any) string {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return ""
+}
+
+func boolOrFalse(v any) bool {
+	b, _ := v.(bool)
+	return b
 }
