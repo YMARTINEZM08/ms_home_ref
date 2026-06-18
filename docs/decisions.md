@@ -20,18 +20,21 @@ request (HOME still served, personalization off). With `AUTH_JWKS_URL` empty the
 service runs in **dev mode**: identity from the `x-profile-id` header. JWT claims feed
 the `me` projection (claims override cart-header fields per the `@Expose` allowlist).
 
-### ⚠️ Divergence from digital_bff (reconcile before cutover)
-digital_bff does **not** validate JWTs locally. Clients send an **opaque session cookie**
-(`COOKIE_NAME`); `OpaqueTokenMiddleware` exchanges it at an Auth0-backed service
-(`GET /v2/auth/exchange-token`, per-brand client) which returns decoded claims; profileId =
-`decodeAccessToken.prn`, `isLoggedIn = !isAnonymous`. ms_home (D8) instead expects a
-**Bearer JWT** and verifies it locally. Implications:
-- **Transport mismatch**: existing clients send an opaque cookie, not a JWT. ms_home needs an
-  upstream **opaque→JWT exchange** (gateway/auth service) in front, OR D8 must be revisited to
-  call the same exchange endpoint. Without that, cookie-based clients won't authenticate.
-- **Claim name**: set `AUTH_PROFILE_CLAIM=prn` to match digital_bff.
-- **Not ported** (out of HOME scope): per-brand Auth0 clients, CSC agent path (`x-cs-folio-id`),
-  impersonation, cookie-clear/400 on invalid token.
+### Two auth modes (D8 update)
+Auth mode is chosen by config (opaque > jwt > dev):
+- **Opaque exchange (digital_bff parity)** — `AUTH_OPAQUE_EXCHANGE_URL` set. ms_home reads the
+  session cookie (`AUTH_COOKIE_NAME`, default `SessionId`), calls
+  `GET /v2/auth/exchange-token` with `x-brand-id=<brand>`, and uses `decodeAccessToken`:
+  profileId = `prn`, isLoggedIn = `!isAnonymous`, claims feed `me`. Matches the incumbent's
+  transport — no upstream JWT conversion needed.
+- **Local JWT** — `AUTH_JWKS_URL` set. RS256 Bearer validated against JWKS; `AUTH_PROFILE_CLAIM`
+  (default `prn`). Use when an upstream already issues JWTs.
+- **Dev** — both empty: identity from the `x-profile-id` header.
+
+Resolved: the earlier transport mismatch (opaque cookie vs Bearer JWT) — opaque mode now
+matches digital_bff directly. Still **not ported** (out of HOME scope): per-brand Auth0 client
+selection (uses `x-brand-id` as-is), CSC agent path (`x-cs-folio-id`), impersonation, and the
+cookie-clear/400 on invalid token (ms_home → anonymous instead).
 
 ## Personalization flag rule (preserved)
 Effective personalization = `PERSONALIZATION_ENABLED` (env gate) **AND** CMS

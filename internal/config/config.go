@@ -40,14 +40,20 @@ type TracingConfig struct {
 	ServiceName string
 }
 
-// AuthConfig configures service-side JWT validation. When JWKSURL is empty, JWT
-// validation is disabled and identity falls back to the x-profile-id header (dev).
+// AuthConfig configures authentication. Mode is chosen by which URL is set:
+// OpaqueExchangeURL (digital_bff-style cookie exchange) > JWKSURL (local JWT) > dev
+// (x-profile-id header).
 type AuthConfig struct {
 	JWKSURL      string
 	Issuer       string
 	Audience     string
-	ProfileClaim string // claim holding the profile id (default "profileId")
+	ProfileClaim string // JWT mode: claim holding the profile id (default "prn")
 	Timeout      time.Duration
+
+	// OpaqueExchangeURL is the Auth service base for /v2/auth/exchange-token; when set,
+	// ms_home exchanges the session cookie for claims (matches digital_bff).
+	OpaqueExchangeURL string
+	CookieName        string // session cookie name (default "SessionId")
 }
 
 // SearchFacadeConfig targets the Search Facade. Optional: empty URL disables
@@ -128,11 +134,13 @@ func Load() (Config, error) {
 			Timeout: getDuration("SHARED_SEARCH_FACADE_TIMEOUT", 5*time.Second),
 		},
 		Auth: AuthConfig{
-			JWKSURL:      getEnv("AUTH_JWKS_URL", ""),
-			Issuer:       getEnv("AUTH_ISSUER", ""),
-			Audience:     getEnv("AUTH_AUDIENCE", ""),
-			ProfileClaim: getEnv("AUTH_PROFILE_CLAIM", "profileId"),
-			Timeout:      getDuration("AUTH_TIMEOUT", 5*time.Second),
+			JWKSURL:           getEnv("AUTH_JWKS_URL", ""),
+			Issuer:            getEnv("AUTH_ISSUER", ""),
+			Audience:          getEnv("AUTH_AUDIENCE", ""),
+			ProfileClaim:      getEnv("AUTH_PROFILE_CLAIM", "prn"),
+			Timeout:           getDuration("AUTH_TIMEOUT", 5*time.Second),
+			OpaqueExchangeURL: getEnv("AUTH_OPAQUE_EXCHANGE_URL", ""),
+			CookieName:        getEnv("AUTH_COOKIE_NAME", "SessionId"),
 		},
 		Tracing: TracingConfig{
 			Enabled:     getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "") != "",

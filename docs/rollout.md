@@ -20,13 +20,12 @@ backends at the edge. Recommended options, most-isolated first:
 Identify which backend served a response via `GET /healthz` → `{"status":"ok","version":"<rev>"}`
 (set `BUILD_VERSION`) and the `service.version` trace attribute.
 
-## ⚠️ Blocker: auth transport (resolve first)
-digital_bff authenticates an **opaque session cookie** (exchanged at the Auth0 service);
-ms_home (D8) validates a **Bearer JWT** locally. Before any real traffic, ensure the edge
-provides ms_home a valid JWT — i.e. add an **opaque→JWT exchange** upstream (gateway/auth
-service), or revisit D8 to call the exchange endpoint. Also set `AUTH_PROFILE_CLAIM=prn`.
-Verify a logged-in request authenticates end-to-end against the real IdP in shadow. See
-[decisions.md](decisions.md) D8.
+## Auth mode (set before traffic)
+For digital_bff parity, run **opaque mode**: set `AUTH_OPAQUE_EXCHANGE_URL` to the Auth
+service base (cookie `AUTH_COOKIE_NAME`, default `SessionId`). ms_home then exchanges the
+session cookie exactly like the incumbent — no JWT conversion needed. (Alternative: local
+JWT mode via `AUTH_JWKS_URL` if an upstream already issues JWTs.) Verify a logged-in request
+authenticates end-to-end against the real Auth service in shadow. See [decisions.md](decisions.md) D8.
 
 ## Pre-cutover gates (must pass before any user traffic)
 - **Golden-contract parity**: `scripts/capture-fixtures.sh` against QA, then

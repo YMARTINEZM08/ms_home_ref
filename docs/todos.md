@@ -50,14 +50,11 @@
 - `me` token-claim fields now populated from verified claims.
 
 ## Remaining (HOME page) — confirmations & cross-cutting
-- **Auth transport (blocker)**: digital_bff exchanges an opaque session cookie at the Auth0
-  service; ms_home validates a Bearer JWT locally (D8). Add an upstream opaque→JWT exchange
-  (gateway/auth service) OR revisit D8 to call `/v2/auth/exchange-token`. Set
-  `AUTH_PROFILE_CLAIM=prn`. Not ported: per-brand Auth0 clients, CSC path, impersonation.
-  See decisions.md D8, rollout.md, risks.md.
-- **Auth confirmations**: whether ID/access token is sent; whether downstreams
-  (ATG/Salesforce/Apigee) need the raw token forwarded (today only the Cookie goes to ATG);
-  digital_bff also derives `isLoggedIn` from the cart header when the token doesn't set it.
+- ✅ **Auth transport resolved**: opaque mode (`AUTH_OPAQUE_EXCHANGE_URL`) matches digital_bff's
+  cookie exchange; local JWT and dev-header modes also available (D8). Set the env per environment.
+- **Auth confirmations**: per-brand Auth0 client selection (ms_home passes `x-brand-id` as-is;
+  CSC path/impersonation not ported); whether downstreams (ATG/Salesforce/Apigee) need the raw
+  token forwarded (today only the Cookie goes to ATG).
 - **banner_products body nuance**: `/getMultiProduct` sends `productIds` (spread of
   MultiProductDetailsDto; the DTO's `@Expose({name:'id'})` is inbound-only) — confirm the
   Search Facade accepts `productIds` (vs `id`).

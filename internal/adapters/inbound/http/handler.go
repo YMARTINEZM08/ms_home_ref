@@ -3,37 +3,27 @@
 package http
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"ms_home/internal/application"
 	"ms_home/internal/domain"
 )
 
-// TokenVerifier validates a bearer token and returns its claims. Implemented by
-// internal/auth.Verifier; nil in dev (identity falls back to the x-profile-id header).
-type TokenVerifier interface {
-	Verify(ctx context.Context, token string) (map[string]any, error)
-}
-
 // Handler serves the HOME content endpoint.
 type Handler struct {
 	home         *application.HomeService
-	verifier     TokenVerifier
-	profileClaim string
+	auth         Authenticator // nil = dev mode (x-profile-id header)
 	log          *slog.Logger
 	defaultBrand string
 }
 
-// NewHandler builds the inbound handler. verifier may be nil (dev mode).
-func NewHandler(home *application.HomeService, verifier TokenVerifier, profileClaim, defaultBrand string, log *slog.Logger) *Handler {
-	return &Handler{home: home, verifier: verifier, profileClaim: profileClaim, defaultBrand: defaultBrand, log: log}
+// NewHandler builds the inbound handler. auth may be nil (dev mode).
+func NewHandler(home *application.HomeService, auth Authenticator, defaultBrand string, log *slog.Logger) *Handler {
+	return &Handler{home: home, auth: auth, defaultBrand: defaultBrand, log: log}
 }
 
 // GetContent handles GET /content/{contentType}/{locale}/{path...}.
@@ -79,7 +69,7 @@ func (h *Handler) requestInfo(r *http.Request, ct domain.ContentType, locale str
 		source = domain.SourcePocket
 	}
 
-	profileID, claims := h.identity(r)
+	profileID, loggedIn, claims := h.identity(r)
 
 	visitorID := ""
 	if c, err := r.Cookie("gbi_visitorId"); err == nil {
@@ -95,7 +85,7 @@ func (h *Handler) requestInfo(r *http.Request, ct domain.ContentType, locale str
 		Locale:          locale,
 		ProfileID:       profileID,
 		VisitorID:       visitorID,
-		LoggedIn:        profileID != "",
+		LoggedIn:        loggedIn,
 		Claims:          claims,
 		JewelUserID:     r.Header.Get("x-jml-user-id"),
 		JewelDeviceID:   r.Header.Get("x-jml-device-id"),
@@ -108,45 +98,15 @@ func (h *Handler) requestInfo(r *http.Request, ct domain.ContentType, locale str
 	}
 }
 
-// identity resolves the profile id (and JWT claims) for the request. When a
-// verifier is configured, identity comes ONLY from a valid bearer token (the
-// x-profile-id header is ignored for security); otherwise the header is the dev
-// fallback. An invalid/absent token yields an anonymous request.
-func (h *Handler) identity(r *http.Request) (string, map[string]any) {
-	if h.verifier == nil {
-		return r.Header.Get("x-profile-id"), nil
+// identity resolves (profileID, loggedIn, claims). With an Authenticator configured,
+// identity comes only from it (the x-profile-id header is ignored for security);
+// otherwise the header is the dev fallback. Anonymous/invalid → ("", false, nil).
+func (h *Handler) identity(r *http.Request) (string, bool, map[string]any) {
+	if h.auth == nil {
+		p := r.Header.Get("x-profile-id")
+		return p, p != "", nil
 	}
-	token := bearerToken(r)
-	if token == "" {
-		return "", nil
-	}
-	claims, err := h.verifier.Verify(r.Context(), token)
-	if err != nil {
-		h.log.DebugContext(r.Context(), "jwt verification failed", slog.String("error", err.Error()))
-		return "", nil
-	}
-	return claimString(claims, h.profileClaim), claims
-}
-
-func bearerToken(r *http.Request) string {
-	const prefix = "Bearer "
-	auth := r.Header.Get("Authorization")
-	if len(auth) > len(prefix) && strings.EqualFold(auth[:len(prefix)], prefix) {
-		return auth[len(prefix):]
-	}
-	return ""
-}
-
-// claimString reads a claim as a string (numbers are formatted without decimals).
-func claimString(claims map[string]any, key string) string {
-	switch v := claims[key].(type) {
-	case string:
-		return v
-	case float64:
-		return strconv.FormatFloat(v, 'f', -1, 64)
-	default:
-		return ""
-	}
+	return h.auth.Authenticate(r.Context(), r)
 }
 
 // newID returns a random 16-byte hex identifier (stdlib, no external deps).

@@ -22,6 +22,8 @@ Copy the sample env and adjust:
 ```sh
 cp configs/.env.example .env
 ```
+> Full reference (every var, defaults, auth modes, and **runtime CMS feature flags**):
+> [docs/configuration.md](docs/configuration.md).
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
 | `SHARED_CONTENT_SERVICE_URL` | ✅ | — | Content Service proxy base URL |
@@ -37,9 +39,11 @@ cp configs/.env.example .env
 | `SHARED_ATG_TIMEOUT` | | `5s` | ATG call timeout |
 | `SHARED_SEARCH_FACADE_URL` | | — | Search Facade; empty disables `banner_products` |
 | `SHARED_SEARCH_FACADE_TIMEOUT` | | `5s` | Search Facade call timeout |
-| `AUTH_JWKS_URL` | | — | JWKS endpoint; set = validate JWT, empty = dev (x-profile-id) |
-| `AUTH_ISSUER` / `AUTH_AUDIENCE` | | — | Validated when non-empty |
-| `AUTH_PROFILE_CLAIM` | | `profileId` | Claim holding the profile id |
+| `AUTH_OPAQUE_EXCHANGE_URL` | | — | Auth service base; set = exchange session cookie (digital_bff parity) |
+| `AUTH_COOKIE_NAME` | | `SessionId` | Opaque session cookie name |
+| `AUTH_JWKS_URL` | | — | JWKS endpoint; set = validate Bearer JWT locally |
+| `AUTH_ISSUER` / `AUTH_AUDIENCE` | | — | JWT issuer/audience, validated when non-empty |
+| `AUTH_PROFILE_CLAIM` | | `prn` | JWT mode: claim holding the profile id |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | | — | Set to export traces via OTLP; empty = propagation-only |
 | `OTEL_SERVICE_NAME` | | `ms_home` | Trace service name |
 | `PORT` | | `8080` | HTTP listen port |

@@ -1,5 +1,16 @@
 # Changelog
 
+## Phase 3c — Opaque-token auth mode (digital_bff parity)
+- `auth.ExchangeAdapter`: `GET /v2/auth/exchange-token?{cookie}={session}` + `x-brand-id`,
+  returns `decodeAccessToken` (prn, isAnonymous, isSignUp, …). Mirrors AuthProvider.exchangeToken.
+- `http.Authenticator` abstraction with two impls: `jwtAuthenticator` (local RS256) and
+  `opaqueAuthenticator` (cookie exchange; profileId=prn, loggedIn=!isAnonymous). Handler
+  identity now returns (profileID, loggedIn, claims); dev = x-profile-id header.
+- Bootstrap selects mode: opaque (`AUTH_OPAQUE_EXCHANGE_URL`) > JWT (`AUTH_JWKS_URL`) > dev.
+  `AUTH_COOKIE_NAME` (default SessionId); `AUTH_PROFILE_CLAIM` default now `prn`.
+- Resolves the auth transport mismatch (decisions.md D8 / risks.md).
+- Tests: exchange adapter (request shape, error), opaque + jwt authenticators; e2e cookie flow.
+
 ## Phase 3b — Cutover mechanics
 - `BUILD_VERSION` stamp: echoed by `/healthz` `/readyz` (`{"status","version"}`), startup
   log, and the `service.version` trace attribute — identifies the canary revision.

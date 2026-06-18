@@ -93,13 +93,19 @@ func New(cfg config.Config) *App {
 
 	homeService := application.NewHomeService(contentAdapter, populateSvc, cartHeader, cfg.PersonalizationEnabled, logger)
 
-	// nil interface (not a typed-nil) when JWT validation is disabled, so the handler
-	// falls back to the x-profile-id dev header.
-	var verifier inhttp.TokenVerifier
-	if cfg.Auth.JWKSURL != "" {
-		verifier = auth.NewVerifier(cfg.Auth.JWKSURL, cfg.Auth.Issuer, cfg.Auth.Audience, cfg.Auth.Timeout)
+	// Auth mode by config: opaque cookie exchange (digital_bff parity) > local JWT >
+	// dev (x-profile-id header). nil interface = dev mode.
+	var authn inhttp.Authenticator
+	switch {
+	case cfg.Auth.OpaqueExchangeURL != "":
+		exClient := httpclient.New(cfg.Auth.Timeout, logger)
+		exchange := auth.NewExchange(exClient, cfg.Auth.OpaqueExchangeURL, cfg.Auth.CookieName)
+		authn = inhttp.NewOpaqueAuthenticator(exchange, cfg.Auth.CookieName, cfg.DefaultBrand, logger)
+	case cfg.Auth.JWKSURL != "":
+		verifier := auth.NewVerifier(cfg.Auth.JWKSURL, cfg.Auth.Issuer, cfg.Auth.Audience, cfg.Auth.Timeout)
+		authn = inhttp.NewJWTAuthenticator(verifier, cfg.Auth.ProfileClaim, logger)
 	}
-	handler := inhttp.NewHandler(homeService, verifier, cfg.Auth.ProfileClaim, cfg.DefaultBrand, logger)
+	handler := inhttp.NewHandler(homeService, authn, cfg.DefaultBrand, logger)
 
 	return &App{
 		Router:   inhttp.NewRouter(handler, cfg.Version),
