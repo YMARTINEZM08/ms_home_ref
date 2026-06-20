@@ -434,17 +434,62 @@ Before generating any code, verify:
 * The solution is production-ready.
 * The solution improves developer experience across DEV, QA, Staging, and Production environments.
 
+
 ---
 
-# Rule 17 — Logic to preserve  
+# Rule 17 — Logic to Preserve
 
-* Preserve content-service logic to get all content types and entries from Contentstack.
-* Dont move how content-service interacts with Contentstack.
-* Preserve the way content-service handles pagination with Contentstack.
-* Preserve the way content-service handles errors from Contentstack.
-* Preserve the way content-service transforms Contentstack responses into domain models.
-* Preserve the way content-service handles configuration for Contentstack (e.g. API keys, timeouts).
-* Preserve the way content-service logs interactions with Contentstack.
-* Preserve the way content-service handles retries and backoff when communicating with Contentstack.
-* Preserve the way content-service handles rate limiting when communicating with Contentstack.
-* Preserve the way content-service handles authentication and authorization when communicating with Contentstack.
+Preserve how `content-service`:
+- Gets all content types and entries from Contentstack
+- Handles pagination, errors, and response transformation
+- Manages Contentstack configuration (API keys, timeouts)
+- Logs interactions
+- Handles retries, backoff, rate limiting, and authentication
+
+---
+
+# Rule 18 — Home Rendering Strategy
+
+Home follows a hybrid composition model: Contentstack defines page structure; dynamic content resolves independently at runtime.
+
+| Concern | Rule |
+|---|---|
+| Ordering | Preserve Contentstack order; never reorder blocks |
+| Static blocks | No session dependency; eligible for caching |
+| Dynamic blocks | Session/runtime dependent; return placeholder + endpoint/path |
+| Dynamic contract | Must expose: block ID, block type, endpoint/path, fallback, feature flag ID |
+| Session awareness | Blocks depending on auth are always dynamic |
+| Resolution | Home orchestrates composition only; dedicated endpoints resolve dynamic content |
+| Feature toggle | Dynamic blocks must support runtime enable/disable without redeployment |
+| Failure handling | One block failure must never prevent rendering the rest of the page |
+| Caching | Only static blocks are eligible for long-lived caching |
+| Extensibility | New blocks must be added without modifying existing ones (Open/Closed Principle) |
+
+**Home endpoint responsibilities:** retrieve definition · preserve ordering · identify block type · return placeholders · apply feature flags. Must never implement recommendation, personalization, UGC, or shortcut business logic.
+
+---
+
+# Rule 19 — Legacy System Reference Policy
+
+The legacy project is **read-only reference material** for understanding external integrations only.
+
+**Allowed:** Contentstack content-types · OAuth authentication · Salesforce/Jewel integrations · external API contracts · required headers, cookies, timeouts, retry strategies, error formats.
+
+**Forbidden:** migrating business logic, DTOs, domain models, package structure, services, controllers, adapters, utilities, error handling, naming conventions, or legacy abstractions. No line-by-line migration.
+
+## 19.5–19.10 Block-Oriented Architecture
+
+Each Home block owns: request record · response record · use case interface · use case implementation · outbound port · adapter · business rules.
+
+Avoid generic DTOs shared by unrelated blocks. Adding a new block requires only: new use case + new adapter + Spring bean registration + Contentstack configuration.
+
+Preserve only external integration contracts. Everything internal must follow Hexagonal Architecture.
+
+**AI Migration Workflow:** 1) Analyze external integration → 2) Identify business capability → 3) Design domain records/sealed interfaces → 4) Design inbound/outbound ports → 5) Design adapters → 6) Design block-specific records → 7) Implement clean solution.
+
+Objective: clean, scalable, maintainable architecture — not feature parity with the legacy system.
+
+
+# Rule 20 — Constants usage
+
+Always define constants instead literal strings or numbers in the code. This promotes maintainability, readability, and reduces the risk of typos.
