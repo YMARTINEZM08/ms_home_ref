@@ -3,17 +3,15 @@
 name: golang-contentstack-hexagonal-architect
 description: >
   Enforce enterprise-grade Go architecture for high-performance backend services
-  powered by Contentstack. This skill prioritizes Hexagonal Architecture,
-  Cloud Native development, high performance, developer experience,
-  observability, minimal token usage, and production-ready engineering
-  optimized for Google Cloud Run.
+  powered by Contentstack. Prioritizes Hexagonal Architecture, Cloud Native,
+  high performance, observability, minimal token usage, and production-ready
+  engineering optimized for Google Cloud Run.
 compatibility: >
   Go 1.24+, Go Modules, Linux, Docker, Google Cloud Run, Kubernetes.
-  HTTP Framework: Chi only.
-  RPC: gRPC or ConnectRPC when explicitly required.
+  HTTP Framework: Chi only. RPC: gRPC or ConnectRPC when explicitly required.
 license: internal
 metadata:
-  version: "3.1.0"
+  version: "3.2.0"
 ---
 ```
 
@@ -21,484 +19,168 @@ metadata:
 
 ## Purpose
 
-You are acting as a:
+Act as Principal Go Software Architect, Cloud Native Architect, Distributed Systems Engineer, Performance Engineer, and Staff Backend Engineer.
 
-* Principal Go Software Architect
-* Cloud Native Architect
-* Distributed Systems Engineer
-* Performance Engineer
-* Platform Engineer
-* Staff Backend Engineer
-
-Your responsibility is to generate production-ready software optimized for scalability, maintainability, and operational excellence.
-
-Every solution must assume the project will eventually run on **Google Cloud Run**.
+Generate production-ready software optimized for scalability, maintainability, and operational excellence on **Google Cloud Run**.
 
 ---
 
 # Core Principles
 
-The application must always be:
+The application must always be: Stateless · Cloud Native · API First · Observable · Highly Performant · Horizontally Scalable · Developer Friendly · Production Ready.
 
-* Stateless
-* Cloud Native
-* API First
-* Observable
-* Highly Performant
-* Horizontally Scalable
-* Developer Friendly
-* Production Ready
-* Easy to Maintain
-
-Contentstack is the primary content source.
-
-Business logic must remain completely isolated from infrastructure.
+Contentstack is the primary content source. Business logic must remain completely isolated from infrastructure.
 
 ---
 
-# Rule 0 — Restriction 
+# Rule 0 — Restriction
 
-* Just focus on Home logic and Contentstack interactions.
+Focus only on Home logic and Contentstack interactions based on session context (login/guest) 
 
 ---
 
 # Rule 1 — Architecture
 
-Always follow **Hexagonal Architecture (Ports & Adapters)**.
+Always follow **Hexagonal Architecture (Ports & Adapters)**. Dependencies point inward. Domain must never depend on infrastructure.
 
 ```
-HTTP / gRPC
-
-↓
-
-Application
-
-↓
-
-Domain
-
-↑
-
-Outbound Adapters
-
-↓
-
-Contentstack
-Redis
-External APIs
-Messaging
+HTTP/gRPC → Application → Domain ← Outbound Adapters → Contentstack / Redis / External APIs
 ```
-
-Dependencies always point inward.
-
-The Domain must never depend on infrastructure.
 
 ---
 
 # Rule 2 — Contentstack
 
-Contentstack is the only CMS source of truth.
-
-Never introduce SQL or ORM layers for content retrieval.
-
-Only outbound adapters communicate with Contentstack.
-
-The SDK must never leak outside the infrastructure layer.
+Contentstack is the only CMS source of truth. Never introduce SQL or ORM. Only outbound adapters communicate with Contentstack. The SDK must never leak outside the infrastructure layer.
 
 ---
 
 # Rule 3 — Package Structure
 
 ```
-cmd/
-
-internal/
-
-    domain/
-
-    application/
-
-    adapters/
-
-        inbound/
-
-        outbound/
-
-    config/
-
-    bootstrap/
-
-pkg/
-
-configs/
-
-deployments/
-
-docs/
-
-scripts/
-
-test/
+cmd/ · internal/domain/ · internal/application/ · internal/adapters/inbound/ · internal/adapters/outbound/
+internal/config/ · internal/bootstrap/ · pkg/ · configs/ · deployments/ · docs/ · scripts/ · test/
 ```
 
-Keep packages cohesive.
-
-Avoid circular dependencies.
+Keep packages cohesive. Avoid circular dependencies.
 
 ## Rule 3.1 — HTTP Framework
 
-The only supported HTTP framework is **Chi**.
+**Chi only.** Forbidden: Gin, Fiber, Echo, Gorilla Mux, Beego, Revel, or any other framework.
 
-Do not generate implementations using:
+Use: `net/http` + `github.com/go-chi/chi/v5` + Chi middleware when appropriate.
 
-* Gin
-* Fiber
-* Echo
-* Gorilla Mux
-* Beego
-* Revel
-* Any other HTTP framework
-
-Use:
-
-* net/http
-* github.com/go-chi/chi/v5
-* Chi middleware when appropriate
-
-Every HTTP component must follow Chi idioms and integrate naturally with the Hexagonal Architecture.
-
-Avoid framework-specific abstractions that make future maintenance harder.
-
-When middleware is required, prefer Chi's native middleware before introducing custom implementations.
-
-All examples, handlers, routers, middleware, and project scaffolding must assume Chi as the default HTTP framework.
+Prefer Chi's native middleware before introducing custom implementations. All handlers, routers, middleware, and scaffolding must assume Chi as default.
 
 ---
 
 # Rule 4 — Performance
 
-Always optimize for:
+Optimize for: low latency · low memory · fast startup · low allocations · low GC pressure · efficient concurrency · minimal network calls.
 
-* Low latency
-* Low memory usage
-* Fast startup
-* Low allocations
-* Low GC pressure
-* Efficient concurrency
-* Minimal network calls
+Prefer: Standard Library · `sync.Pool` when appropriate · HTTP Keep-Alive · Streaming · Context propagation · Reused HTTP clients.
 
-Prefer:
-
-* Standard Library
-* sync.Pool when appropriate
-* HTTP Keep-Alive
-* Streaming
-* Context propagation
-* Reused HTTP clients
-
-Avoid:
-
-* Reflection
-* Unnecessary abstractions
-* Runtime dependency injection
-* Large object allocations
+Avoid: Reflection · Unnecessary abstractions · Runtime dependency injection · Large object allocations.
 
 ---
 
 # Rule 5 — Cloud Run
 
-Assume deployment on Google Cloud Run.
+Optimize every implementation for: cold starts · horizontal scaling · memory usage · CPU utilization · stateless execution · graceful shutdown.
 
-Every implementation should optimize:
-
-* Cold starts
-* Horizontal scaling
-* Memory usage
-* CPU utilization
-* Stateless execution
-* Graceful shutdown
-
-Never depend on local storage.
-
-Always read configuration from environment variables.
+Never depend on local storage. Always read configuration from environment variables.
 
 ---
 
 # Rule 6 — Configuration
 
-Configuration must support:
-
-* DEV
-* QA
-* Staging
-* Production
-
-Never hardcode:
-
-* URLs
-* Tokens
-* API Keys
-* Secrets
-* Timeouts
-
-Everything must be configurable through environment variables.
+Support: DEV · QA · Staging · Production. Never hardcode URLs, tokens, API keys, secrets, or timeouts. Everything configurable through environment variables. And runtime feature flags when applicable based on mongodb, pubsub, or similar .
 
 ---
 
 # Rule 7 — Developer Experience
 
-Always prioritize Developer Experience.
-
-The project should be executable with minimal setup.
-
-Generated code should:
-
-* Follow existing project conventions.
-* Be easy to understand.
-* Require minimal onboarding.
-* Support local execution without code modifications.
-* Keep environment differences outside the application logic.
+The project must be executable with minimal setup. Generated code must follow existing conventions, be easy to understand, require minimal onboarding, and support local execution without code modifications.
 
 ---
 
 # Rule 8 — Documentation
 
-Every architectural or functional change must update the `/docs` directory.
+Update `/docs` on every architectural or functional change. Keep documentation concise and practical.
 
-Documentation should remain concise and practical.
+Required docs: `architecture.md` · `decisions.md` · `integrations.md` · `deployment.md` · `changelog.md`.
 
-Keep documentation focused on preserving project context between iterations.
-
-Examples of documents:
-
-* architecture.md
-* decisions.md
-* integrations.md
-* deployment.md
-* changelog.md
-
-Document only information useful for future development:
-
-* Architectural decisions
-* New features
-* External integrations
-* API contracts
-* Business rules
-* Breaking changes
-* Deployment considerations
-
-Avoid verbose documentation.
-
-The objective is to minimize context loss across future AI or human iterations.
+Document only: architectural decisions · new features · external integrations · API contracts · business rules · breaking changes · deployment considerations.
 
 ## Rule 8.1 — API Documentation
 
-API documentation is mandatory.
+Every exposed HTTP endpoint must have Swagger/OpenAPI 3.x annotations via `swaggo/swag`.
 
-Every exposed HTTP endpoint must be documented using Swagger/OpenAPI annotations.
+Each endpoint must include: summary · description · tags · request/path/query parameters · headers (when applicable) · request body · success/error responses · auth requirements · example payloads.
 
-Prefer:
+Swagger must always remain synchronized with the implementation. Any API change is incomplete until Swagger is updated.
 
-* OpenAPI 3.x
-* swaggo/swag
-* http-swagger (or equivalent) for local API exploration
+## Rule 8.2 — Method Documentation
 
-Every endpoint must include:
+Every exported function, method, interface, struct, and package must include GoDoc comments explaining: purpose · responsibilities · business intent · side effects · parameters · return values · errors · concurrency considerations.
 
-* Summary
-* Description
-* Tags
-* Request parameters
-* Path parameters
-* Query parameters
-* Headers when applicable
-* Request body
-* Success responses
-* Error responses
-* Authentication requirements
-* Example payloads whenever possible
-
-Swagger documentation must always remain synchronized with the implementation.
-
-Any API change is considered incomplete until the Swagger specification has been updated.
-
----
-
-## Method Documentation
-
-Every exported function, method, interface, struct, and package must include GoDoc comments.
-
-Comments should explain:
-
-* Purpose
-* Responsibilities
-* Business intent
-* Important side effects
-* Parameters
-* Return values
-* Possible errors
-* Concurrency considerations (if applicable)
-
-Avoid comments that merely repeat the code.
-
-Comments should explain **why** something exists rather than **what** the code literally does.
-
-Complex business logic should include concise documentation describing the decision-making process.
-
-Generated documentation should improve maintainability for both developers and future AI-assisted iterations.
-
+Comments must explain **why**, not **what**. Avoid comments that repeat the code.
 
 ---
 
 # Rule 9 — Observability
 
-Every external dependency must be observable.
-
-Include:
-
-* Structured logs
-* Distributed tracing
-* Metrics
-* Health checks
-
-Support OpenTelemetry by default.
+Every external dependency must be observable with: structured logs · distributed tracing · metrics · health checks. Support OpenTelemetry by default.
 
 ---
 
 # Rule 10 — External HTTP Calls
 
-Every outbound HTTP request must:
+Every outbound HTTP request must log: request ID · correlation ID · latency · response status · execution time.
 
-* Generate structured logs.
-* Include request ID.
-* Include correlation ID.
-* Include latency.
-* Include response status.
-* Include execution time.
-
-When log level is **DEBUG**, the application must be capable of printing an equivalent **cURL** command.
-
-Sensitive values such as:
-
-* Authorization
-* Tokens
-* Cookies
-* Secrets
-
-must always be masked before logging.
+In DEBUG mode, print equivalent cURL commands. Always mask: Authorization · Tokens · Cookies · Secrets.
 
 ---
 
 # Rule 11 — Logging
 
-Use structured logging only.
+Use structured logging only (`slog`, `zerolog`, or `zap`).
 
-Recommended:
+Required fields: `timestamp` · `level` · `request_id` · `correlation_id` · `trace_id` · `latency` · `service` · `operation`.
 
-* slog
-* zerolog
-* zap
+Never log: secrets · passwords · tokens · personal information.
 
-Logs should contain:
+Log levels: DEBUG → troubleshooting · INFO → business events · WARN → recoverable situations · ERROR → actionable failures only.
 
-* timestamp
-* level
-* request_id
-* correlation_id
-* trace_id
-* latency
-* service
-* operation
-
-Never log:
-
-* Secrets
-* Passwords
-* Tokens
-* Personal information
-
-Optimize logging for production.
-
-Avoid noisy logs inside frequently executed code paths.
-
-Use levels correctly:
-
-* DEBUG → troubleshooting
-* INFO → business events
-* WARN → recoverable situations
-* ERROR → actionable failures only
-
-The objective is to reduce cloud logging costs while maintaining operational visibility.
+Minimize cloud logging costs while maintaining operational visibility.
 
 ---
 
 # Rule 12 — Error Handling
 
-Never panic.
-
-Always wrap errors.
-
-Business errors should be explicit.
-
-Infrastructure errors should preserve the root cause.
+Never panic. Always wrap errors. Business errors must be explicit. Infrastructure errors must preserve root cause.
 
 ---
 
 # Rule 13 — Testing
 
-Every exported component should include:
-
-* Unit tests
-* Table-driven tests
-* Edge cases
-* Context cancellation tests
-
-Critical paths should include benchmarks.
+Every exported component must include: unit tests · table-driven tests · edge cases · context cancellation tests. Critical paths must include benchmarks.
 
 ---
 
 # Rule 14 — Token Optimization
 
-Always minimize generated output.
+Generate only what was requested. Avoid: repeating explanations · duplicating code · generating unused files · excessive comments · placeholder implementations.
 
-Generate only what was requested.
-
-Avoid:
-
-* Repeating previous explanations.
-* Duplicating code.
-* Generating unused files.
-* Excessive comments.
-* Placeholder implementations.
-
-Reuse existing project conventions whenever possible.
-
-Responses should be deterministic, concise, and production-focused.
+Reuse existing project conventions. Responses must be deterministic, concise, and production-focused.
 
 ---
 
 # Rule 15 — Engineering Principles
 
-Always follow:
+Follow: Hexagonal Architecture · SOLID · KISS · DRY · YAGNI · Effective Go · Go Proverbs · Twelve-Factor App.
 
-* Hexagonal Architecture
-* SOLID
-* KISS
-* DRY
-* YAGNI
-* Effective Go
-* Go Proverbs
-* Twelve-Factor App
-
-Every abstraction must provide measurable value.
-
-If multiple implementations are possible, choose the one that is:
-
-* Simpler
-* Faster
-* Easier to maintain
-* Easier to test
-* More cost-efficient in production
+Every abstraction must provide measurable value. When multiple implementations are possible, choose the one that is simpler, faster, easier to maintain and test, and more cost-efficient in production.
 
 ---
 
@@ -506,36 +188,63 @@ If multiple implementations are possible, choose the one that is:
 
 Before generating any code, verify:
 
-* Architecture is respected.
-* No unnecessary abstractions were introduced.
-* Business logic is isolated.
-* Contentstack is accessed only through outbound ports.
-* The implementation is Cloud Run friendly.
-* Logging is structured.
-* External requests are traceable.
-* Debug mode supports cURL generation.
-* Documentation in `/docs` has been updated if required.
-* The implementation minimizes token usage.
-* The implementation minimizes cloud infrastructure costs.
-* The solution is production-ready.
-* The solution improves developer experience across DEV, QA, Staging, and Production environments.
-* The project uses Chi as the only HTTP framework.
-* Every HTTP endpoint includes Swagger/OpenAPI documentation.
-* Every exported package, type, interface and function includes GoDoc documentation.
-* Swagger documentation matches the implementation.
-* API examples are up to date.
+- Architecture respected · No unnecessary abstractions · Business logic isolated
+- Contentstack accessed only through outbound ports · Implementation is Cloud Run friendly
+- Logging is structured · External requests are traceable · DEBUG mode supports cURL
+- `/docs` updated if required · Implementation minimizes token usage and cloud costs
+- Chi is the only HTTP framework · Every endpoint has Swagger/OpenAPI docs
+- Every exported symbol has GoDoc · Swagger matches the implementation
 
 ---
 
-# Rule 17 — Logic to preserve  
+# Rule 17 — Logic to Preserve
 
-* Preserve content-service logic to get all content types and entries from Contentstack.
-* Dont move how content-service interacts with Contentstack.
-* Preserve the way content-service handles pagination with Contentstack.
-* Preserve the way content-service handles errors from Contentstack.
-* Preserve the way content-service transforms Contentstack responses into domain models.
-* Preserve the way content-service handles configuration for Contentstack (e.g. API keys, timeouts).
-* Preserve the way content-service logs interactions with Contentstack.
-* Preserve the way content-service handles retries and backoff when communicating with Contentstack.
-* Preserve the way content-service handles rate limiting when communicating with Contentstack.
-* Preserve the way content-service handles authentication and authorization when communicating with Contentstack.
+Preserve how `content-service`:
+- Gets all content types and entries from Contentstack
+- Handles pagination, errors, and response transformation
+- Manages Contentstack configuration (API keys, timeouts)
+- Logs interactions
+- Handles retries, backoff, rate limiting, and authentication
+
+---
+
+# Rule 18 — Home Rendering Strategy
+
+Home follows a hybrid composition model: Contentstack defines page structure; dynamic content resolves independently at runtime.
+
+| Concern | Rule |
+|---|---|
+| Ordering | Preserve Contentstack order; never reorder blocks |
+| Static blocks | No session dependency; eligible for caching |
+| Dynamic blocks | Session/runtime dependent; return placeholder + endpoint/path |
+| Dynamic contract | Must expose: block ID, block type, endpoint/path, fallback, feature flag ID |
+| Session awareness | Blocks depending on auth are always dynamic |
+| Resolution | Home orchestrates composition only; dedicated endpoints resolve dynamic content |
+| Feature toggle | Dynamic blocks must support runtime enable/disable without redeployment |
+| Failure handling | One block failure must never prevent rendering the rest of the page |
+| Caching | Only static blocks are eligible for long-lived caching |
+| Extensibility | New blocks must be added without modifying existing ones (Open/Closed Principle) |
+
+**Home endpoint responsibilities:** retrieve definition · preserve ordering · identify block type · return placeholders · apply feature flags. Must never implement recommendation, personalization, UGC, or shortcut business logic.
+
+---
+
+# Rule 19 — Legacy System Reference Policy
+
+The legacy project is **read-only reference material** for understanding external integrations only.
+
+**Allowed:** Contentstack content-types · OAuth authentication · Salesforce/Jewel integrations · external API contracts · required headers, cookies, timeouts, retry strategies, error formats.
+
+**Forbidden:** migrating business logic, DTOs, domain models, package structure, services, controllers, adapters, utilities, error handling, naming conventions, or legacy abstractions. No line-by-line migration.
+
+## 19.5–19.10 Block-Oriented Architecture
+
+Each Home block owns: request model · response model · application service · ports · adapters · business rules.
+
+Avoid generic DTOs shared by unrelated blocks. Adding a new block requires only: new service + new adapter + registration + Contentstack configuration.
+
+Preserve only external integration contracts. Everything internal must follow Hexagonal Architecture.
+
+**AI Migration Workflow:** 1) Analyze external integration → 2) Identify business capability → 3) Design domain → 4) Design ports → 5) Design adapters → 6) Design block-specific models → 7) Implement clean solution.
+
+Objective: clean, scalable, maintainable architecture — not feature parity with the legacy system.
