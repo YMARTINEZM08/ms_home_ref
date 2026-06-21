@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/YMARTINEZM08/ms_home_ref/internal/domain/home"
@@ -135,7 +136,10 @@ func (c *Client) buildURL(req home.HomeRequest) (string, error) {
 		return "", err
 	}
 	contentType := contentTypeFromChannel(req.Channel)
-	base.Path = fmt.Sprintf("/content/%s/%s/%s", contentType, req.Locale, c.cfg.HomePageID)
+	// Append to the base path rather than replacing it so that a base URL
+	// such as https://host/content-service preserves its path prefix.
+	basePath := strings.TrimRight(base.Path, "/")
+	base.Path = fmt.Sprintf("%s/content/%s/%s/%s", basePath, contentType, req.Locale, c.cfg.HomePageID)
 
 	if req.Channel != "" {
 		q := base.Query()

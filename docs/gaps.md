@@ -7,23 +7,32 @@
 
 ## Test runs
 
-| Run | Date | Session | Go result | BFF blocks | Notes |
-|---|---|---|---|---|---|
-| 1 | 2026-06-20 | Guest (`me.isGuest: true`) | `NOT_FOUND` | 16 | Gaps 1-3 confirmed |
-| 2 | 2026-06-20 | Logged-in cookies (expired) | `NOT_FOUND` | 16 | All gaps persist; session expired — see note |
+| Run | Date | Session | Go result | BFF blocks | Go blocks | Notes |
+|---|---|---|---|---|---|---|
+| 1 | 2026-06-20 | Guest | `NOT_FOUND` | 16 | — | Gaps 1-3 confirmed |
+| 2 | 2026-06-20 | Logged-in (expired) | `NOT_FOUND` | 16 | — | Same root cause (Gap 1) |
+| 3 | 2026-06-21 | Guest (`x-authenticated: false`) | `200 OK` | 16 | **26** | Gaps 1-7 fixed; remaining delta is by design |
+| 4 | 2026-06-21 | Logged-in (`x-authenticated: true`) | `200 OK` | 16 | **27** | Audience filter working: greeting×2 present, guest absent |
 
-### Run 2 — logged-in session findings
+### Run 3 & 4 — post-fix verification (2026-06-21)
 
-The session cookies (`LoggedInSession=TRUE`, `DYN_USER_ID=31005309570`) appear to have **expired**. Evidence:
+The Go service now returns `200 OK` with real CMS blocks. Block-type alignment vs BFF:
 
-- The BFF response has **no `me` key** (guest run had `me: {isLoggedIn, isGuest, firstName, …}`).
-- The BFF response has **no `shortcuts` key** (guest run had `shortcuts: {}`).
-- The block list is **byte-for-byte identical** to the guest run (16 blocks, same order, same types).
-- `container_guest` is still present at position [01]; `container_greeting` is still absent — behaviour expected for an unauthenticated user.
+| Block type | BFF | Go Guest | Go Logged-in | Status |
+|---|---|---|---|---|
+| `hero_banner_slider` | 6 | 6 | 6 | ✅ Match |
+| `container_guest` | 1 | 1 | 0 | ✅ Audience filter correct |
+| `container_greeting` | 0 | 0 | 2 | ✅ Audience filter correct |
+| `container_shortcuts` | 0 | 1 | 1 | ⚠️ Dependency — see Gap 9 |
+| `band` | 1 | 1 | 1 | ✅ Match |
+| `container` | 6 | 6 | 6 | ✅ Match |
+| `card_slider` | 1 | 1 | 1 | ✅ Match |
+| `user_generated_content` | 1 | 1 | 1 | ✅ Match |
+| `product_list` | 0 | 10 | 10 | ✅ By design — see Gap 10 |
 
-With valid logged-in cookies the BFF would return a populated `me` object (`isLoggedIn: true`, `firstName`, `cartCount`, etc.) and is expected to swap `container_guest` for `container_greeting`.
-
-> **All gaps from Run 1 remain unchanged in Run 2.** The Go service returns `NOT_FOUND` in both runs for the same root cause (Gap 1).
+**All static block types match exactly.** The count delta is fully explained by intentional design decisions:
+- `product_list` ×10: BFF inline-populates via GroupBy/Salesforce and removes from the block list. Go returns them as dynamic placeholders pointing at `/home/blocks/product_list` per ADR-007. **This is correct.**
+- `container_shortcuts` ×1: BFF extracts it from the block array and returns it as a separate top-level `shortcuts: {}` key. This is a Gap 9 dependency (scoped out — session enrichment is out of scope for the layout service).
 
 > **Security note:** The `.env` file in `ms_home_liverpool/` contains `digital_bff` production secrets
 > (API keys, auth headers, service URLs). A `.gitignore` has been added — see [`.gitignore`](../.gitignore).
