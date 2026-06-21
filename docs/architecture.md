@@ -16,6 +16,8 @@
 12. [Graceful shutdown sequence](#graceful-shutdown-sequence)
 13. [Block type reference](#block-type-reference)
 
+> **Last updated:** 2026-06-21 — reflects gap fixes 1-7 (URL base-path append, `template.layout.blocks` mapper, list-wrapped normalize, new block type constants, `product_list` rename, container normalization, audience filtering).
+
 ---
 
 ## Overview
@@ -144,6 +146,7 @@ main()
         │       keep-alive *http.Client shared by all outbound calls
         │
         ├── 5. contentservice.NewClient(cfg, httpClient, log)
+        │       cfg: BaseURL, HomePageID (default "tienda/home"), Timeout, BreakerSettings
         │       wraps with breaker.New[[]byte]("content-service", cfg.BreakerSettings)
         │       implements domain.ContentPort
         │
@@ -172,7 +175,8 @@ Full request lifecycle from the frontend to the JSON response.
 Frontend / Client
       │
       │  GET /home?locale=es-mx&channel=pocket
-      │  x-brand-id: LP
+      │  x-brand-id:    LP
+      │  x-authenticated: true          ← set by API gateway after token validation
       │  x-correlation-id: abc-123
       │
       ▼
@@ -203,15 +207,17 @@ Frontend / Client
 │                         homeHandler.ServeHTTP                            │
 │                                                                          │
 │  parseRequest(r)                                                         │
-│    ├── locale  → lowercase, default "es-mx"                              │
-│    ├── brand   → uppercase, strip -PREVIEW, validate ^[A-Z0-9]{1,20}$   │
-│    ├── channel → allowlist: "" | pocket | kiosk | mpos                   │
-│    └── preview → x-preview header or -PREVIEW suffix on brand           │
+│    ├── locale      → lowercase, default "es-mx"                          │
+│    ├── brand       → uppercase, strip -PREVIEW, validate ^[A-Z0-9]{1,20}$│
+│    ├── channel     → allowlist: "" | pocket | kiosk | mpos               │
+│    ├── preview     → x-preview header or -PREVIEW suffix on brand        │
+│    └── isLoggedIn  → x-authenticated == "true"                           │
+│          (trusted from API gateway; service never validates tokens)       │
 │                                                                          │
 │    BAD INPUT → writeError(400 BAD_REQUEST) + WARN log  ─────────────▶  │
 │    (no downstream call made)                             response        │
 └─────────────────────────────────────────────────────────────────────────┘
-      │  HomeRequest{Locale, Brand, Channel, Preview}
+      │  HomeRequest{Locale, Brand, Channel, Preview, IsLoggedIn}
       ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                        HomeService.GetLayout                             │
@@ -223,7 +229,10 @@ Frontend / Client
 │      │         │                                                      │   │
 │      │         │  1. validate locale ^[a-z]{2}-[a-z]{2}$            │   │
 │      │         │  2. buildURL (host from config — SSRF prevention)   │   │
-│      │         │     GET {CONTENT_SERVICE_URL}/content/page/es-mx   │   │
+│      │         │     base = strings.TrimRight(cfg.BaseURL.Path, "/") │   │
+│      │         │     path = base + /content/{type}/{locale}/{pageID} │   │
+│      │         │     → {CONTENT_SERVICE_URL}/content/page/es-mx/    │   │
+│      │         │          tienda/home                                │   │
 │      │         │  3. buildHeaders: only x-brand-id + Accept         │   │
 │      │         │  4. emit cURL at DEBUG (headers masked)            │   │
 │      │         │  5. breaker.Execute(do)                            │   │
@@ -236,18 +245,27 @@ Frontend / Client
 │      │         │       timeout      → TIMEOUT            (log 1×)   │   │
 │      │         │       other        → UNEXPECTED_ERROR   (log 1×)   │   │
 │      │         │  7. json.Unmarshal → contentServiceResponse        │   │
+│      │         │       reads resp.Template.Layout.Blocks            │   │
 │      │         │  8. mapToRawBlocks → normalize → []RawBlock        │   │
 │      │         └────────────────────────────────────────────────────┘   │
 │      │                                                                   │
 │  ◀── []RawBlock (or *AppError)                                           │
 │                                                                          │
-│  for each RawBlock:                                                      │
-│    classify(raw)  ──────────────────────────────────────────────────▶   │
-│        isDynamic?                                                        │
-│          type in dynamicBlockTypes?  → DynamicBlock (placeholder)        │
-│          source_of_data ∈ {groupby, salesforce, ...}? → DynamicBlock    │
-│          handle == "client-side"?    → DynamicBlock                      │
-│          else                        → StaticBlock (inline content)      │
+│  filterByAudience(rawBlocks, req.IsLoggedIn)                             │
+│    IsLoggedIn=false (guest):                                             │
+│      drop container_greeting   ← logged-in only                         │
+│      keep container_guest      ← guest only                             │
+│    IsLoggedIn=true (authenticated):                                      │
+│      keep container_greeting   ← logged-in only                         │
+│      drop container_guest      ← guest only                             │
+│    all other types: pass through unchanged                               │
+│                                                                          │
+│  for each remaining RawBlock:                                            │
+│    classify(raw)                                                         │
+│      type in dynamicBlockTypes?  → DynamicBlock (placeholder)           │
+│      source_of_data ∈ {groupby, salesforce, ...}? → DynamicBlock        │
+│      handle == "client-side"?    → DynamicBlock                         │
+│      else                        → StaticBlock (inline content)         │
 │                                                                          │
 │  log INFO: "home layout composed" {total, static, dynamic, locale, brand}│
 └─────────────────────────────────────────────────────────────────────────┘
@@ -273,6 +291,24 @@ Frontend / Client
   200 OK  {"blocks": [...]}
 ```
 
+### Audience filtering decision tree
+
+```
+                        req.IsLoggedIn
+                       (from x-authenticated header)
+                              │
+              ┌───────────────┴───────────────┐
+           false (guest)                  true (authenticated)
+              │                                │
+  ┌───────────▼──────────┐       ┌────────────▼────────────┐
+  │  KEEP container_guest │       │ KEEP container_greeting  │
+  │  DROP container_greeting     │ DROP container_guest      │
+  │  pass all others      │       │ pass all others          │
+  └───────────────────────┘       └──────────────────────────┘
+         ↓ ~26 blocks                     ↓ ~27 blocks
+  (1 guest + 0 greeting)          (0 guest + 2 greeting)
+```
+
 ---
 
 ## Use case: GET /home/blocks/{blockType} — block resolution
@@ -280,7 +316,7 @@ Frontend / Client
 ```
 Frontend / Client
       │
-      │  GET /home/blocks/products_list?locale=es-mx
+      │  GET /home/blocks/product_list?locale=es-mx
       │  x-brand-id: LP
       │
       ▼
@@ -290,13 +326,13 @@ Frontend / Client
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                       blockHandler.ServeHTTP                             │
 │                                                                          │
-│  chi.URLParam(r, "blockType")  → "products_list"                        │
+│  chi.URLParam(r, "blockType")  → "product_list"                         │
 │                                                                          │
-│  domain.IsAllowedResolveType("products_list")                           │
+│  domain.IsAllowedResolveType("product_list")                            │
 │    ├── checks against fixed allowedBlockTypes map (7 entries)            │
 │    ├── UNKNOWN → writeError(400 BAD_REQUEST) + WARN log  ─────────────▶ │
 │    │   (no downstream call — security boundary)           response       │
-│    └── KNOWN  → BlockType("products_list")                              │
+│    └── KNOWN  → BlockType("product_list")                               │
 │                                                                          │
 │  extractParams(r)                                                        │
 │    ├── locale:  from query (default "es-mx")                             │
@@ -326,7 +362,7 @@ Frontend / Client
 └─────────────────────────────────────────────────────────────────────────┘
       │
       ▼
-  200 OK  {"block_type": "products_list", "stub": true, ...}
+  200 OK  {"block_type": "product_list", "stub": true, ...}
 ```
 
 ---
@@ -343,17 +379,20 @@ RawBlock{Type, SourceOfData, Handle, Fields, Enabled, FeatureFlagID}
       │
       ├── domain.IsDynamic(raw.Type)?
       │     checks dynamicBlockTypes map:
-      │       products_list           → YES
-      │       banner_products         → YES
-      │       container_greeting      → YES
-      │       container_guest         → YES
-      │       container_shortcuts     → YES
+      │       product_list                → YES  (real CMS type)
+      │       banner_products             → YES
+      │       container_greeting          → YES  (logged-in audience only)
+      │       container_guest             → YES  (guest audience only)
+      │       container_shortcuts         → YES
       │       recommendation_product_list → YES
-      │       products_cards          → YES
-      │       banner, carousel, hero_banner,
-      │       promo_bar, static_content,
-      │       form, comparepage,
-      │       search_banners, countdown → NO
+      │       products_cards              → YES
+      │
+      │     NOT in dynamicBlockTypes (static):
+      │       hero_banner_slider, band, card_slider,
+      │       user_generated_content, container,
+      │       banner, carousel, hero_banner, promo_bar,
+      │       static_content, form, comparepage,
+      │       search_banners, countdown        → NO
       │
       ├── raw.SourceOfData ∈ {groupby, salesforce,
       │                        recently_viewed, jewel, lob}?  → YES
@@ -385,62 +424,137 @@ RawBlock{Type, SourceOfData, Handle, Fields, Enabled, FeatureFlagID}
 
 ## Content normalization flow
 
-`internal/adapters/outbound/contentservice/normalize.go`
+`internal/adapters/outbound/contentservice/normalize.go` and `mapper.go`
 
-The content-service returns blocks in one of three shapes that must be flattened before classification.
+### Real CMS response structure
+
+The content-service response for `GET /content/page/{locale}/{pageID}` has this top-level shape:
 
 ```
-Content-service response payload
-      │
-      │  layout: [ item, item, item, ... ]
+{
+  "uid": "...",
+  "template": {
+    "_content_type_uid": "flex",
+    "layout": {
+      "blocks": [ ...28 raw block entries... ]   ← actual block list
+    }
+  },
+  "header":     { ... },
+  "footer":     { ... },
+  "seo":        { ... },
+  "page_title": "..."
+}
+```
+
+`mapper.go` reads `resp.Template.Layout.Blocks` — the path `template.layout.blocks`. The root-level `layout`, `blocks`, or `top_layout` keys do not exist and are ignored.
+
+### Block wrapper shapes
+
+Each entry in `template.layout.blocks` uses one of two wrapper shapes:
+
+```
+Shape A — map-wrapped (single block value):
+  { "banner": { "_content_type_uid": "banner", "uid": "...", ...fields... } }
+
+Shape B — list-wrapped (one or more items of the same type):
+  { "hero_banner_slider": [ { "uid": "...", ...fields... }, ... ] }
+  { "product_list":       [ { "uid": "...", ...fields... }, ... ] }
+  { "container":          [ { "uid": "...", ...fields... } ] }
+```
+
+All 28 real CMS home blocks use Shape B. Shape A is supported for backwards compatibility.
+
+### Normalization pipeline
+
+```
+resp.Template.Layout.Blocks  ([]any, 28 entries)
       │
       ▼
 normalize(items []any)
       │
-      ├── item is not map[string]any?  → skip (invalid, log nothing)
+      ├── item is not map[string]any?  → skip
       │
       └── unwrap(m)
             │
             ├── Has "_content_type_uid" at top level?
-            │     → already normalized → handleContainer(m)
+            │     → already normalised → handleContainer(m)
             │
-            └── Wrapper shape: { "banner": { ...fields } }
-                  → extract inner map
-                  → set inner["_content_type_uid"] = "banner" if absent
-                  → handleContainer(inner)
+            ├── Shape A — map-wrapped: { "banner": { ...fields } }
+            │     → val is map[string]any
+            │     → set val["_content_type_uid"] = "banner" if absent
+            │     → handleContainer(val)
+            │
+            └── Shape B — list-wrapped: { "hero_banner_slider": [ item1, item2 ] }
+                  → val is []any
+                  → for each item in list:
+                      set item["_content_type_uid"] = "hero_banner_slider" if absent
+                      handleContainer(item)
+                  → produces N blocks from one list-wrapped entry
 
 handleContainer(block)
       │
       ├── _content_type_uid == "container_grid"
       │     → flattenGrid(block)
-      │           grid_items: [ item, item ]
+      │           reads block["grid_items"] ([]any)
       │           → normalize(grid_items)   ← recursive
-      │           → produces N blocks from one container
+      │           → expands N children into top-level blocks
+      │
+      ├── _content_type_uid == "container"
+      │     → flattenContainer(block)
+      │           reads block["blocks"] ([]any)
+      │           → normalize(sub-blocks) in-place (sets _content_type_uid on cards)
+      │           → keeps container as ONE block (cards remain nested in Fields)
       │
       ├── _content_type_uid == "tabs_container"
       │     → flattenTabs(block)
       │           normalize each tab's content[] in place
-      │           → keep tabs_container as ONE block (rendered client-side)
+      │           → keeps tabs_container as ONE block
       │
       └── anything else
             → [ block ]   ← single-element slice, pass through
 
 
-Example — container_grid with 2 children:
+Example A — Shape B (list-wrapped), 2 items:
 
-  Input:
+  Input (one entry in template.layout.blocks):
   {
-    "_content_type_uid": "container_grid",
-    "grid_items": [
-      { "banner":        { "uid": "b1", "_content_type_uid": "banner" } },
-      { "products_list": { "uid": "p1", "_content_type_uid": "products_list" } }
+    "hero_banner_slider": [
+      { "uid": "h1", "banners": [...] },
+      { "uid": "h2", "banners": [...] }
     ]
   }
 
-  Output (2 flat blocks):
+  Output (2 flat RawBlocks):
   [
-    { "uid": "b1", "_content_type_uid": "banner" },
-    { "uid": "p1", "_content_type_uid": "products_list" }
+    { "_content_type_uid": "hero_banner_slider", "uid": "h1", "banners": [...] },
+    { "_content_type_uid": "hero_banner_slider", "uid": "h2", "banners": [...] }
+  ]
+
+Example B — container with nested cards:
+
+  Input:
+  {
+    "container": [
+      {
+        "uid": "c1",
+        "blocks": [
+          { "card": { "uid": "card1", "title": "..." } },
+          { "card": { "uid": "card2", "title": "..." } }
+        ]
+      }
+    ]
+  }
+
+  Output (1 RawBlock, cards normalised inside Fields):
+  [
+    {
+      "_content_type_uid": "container",
+      "uid": "c1",
+      "blocks": [
+        { "_content_type_uid": "card", "uid": "card1", "title": "..." },
+        { "_content_type_uid": "card", "uid": "card2", "title": "..." }
+      ]
+    }
   ]
 ```
 
@@ -647,29 +761,46 @@ process exits 0
 
 ### Static block types (resolved inline in `/home`)
 
-| Constant | `_content_type_uid` | Description |
-|---|---|---|
-| `BlockTypeBanner` | `banner` | Hero/promotional banner |
-| `BlockTypeCarousel` | `carousel` | Image or content carousel |
-| `BlockTypeHeroBanner` | `hero_banner` | Full-width hero image |
-| `BlockTypePromoBar` | `promo_bar` | Promotion announcement bar |
-| `BlockTypeStaticContent` | `static_content` | Rich text or HTML block |
-| `BlockTypeForm` | `form` | Embedded form |
-| `BlockTypeComparePage` | `comparepage` | Product comparison widget |
-| `BlockTypeSearchBanners` | `search_banners` | Banners tied to search results |
-| `BlockTypeCountdown` | `countdown` | Sale countdown timer |
+Types marked ✅ are confirmed present in production CMS home layout (e2e verified 2026-06-21).
+
+| Constant | `_content_type_uid` | Seen in prod | Description |
+|---|---|---|---|
+| `BlockTypeHeroBannerSlider` | `hero_banner_slider` | ✅ ×6 | Full-width hero banner with slides |
+| `BlockTypeBand` | `band` | ✅ ×1 | Promotional band / strip |
+| `BlockTypeContainer` | `container` | ✅ ×6 | Layout container with nested card blocks |
+| `BlockTypeCardSlider` | `card_slider` | ✅ ×1 | Horizontal scrollable card carousel |
+| `BlockTypeUGC` | `user_generated_content` | ✅ ×1 | User-generated content block |
+| `BlockTypeBanner` | `banner` | — | Hero/promotional banner |
+| `BlockTypeCarousel` | `carousel` | — | Image or content carousel |
+| `BlockTypeHeroBanner` | `hero_banner` | — | Full-width hero image |
+| `BlockTypePromoBar` | `promo_bar` | — | Promotion announcement bar |
+| `BlockTypeStaticContent` | `static_content` | — | Rich text or HTML block |
+| `BlockTypeForm` | `form` | — | Embedded form |
+| `BlockTypeComparePage` | `comparepage` | — | Product comparison widget |
+| `BlockTypeSearchBanners` | `search_banners` | — | Banners tied to search results |
+| `BlockTypeCountdown` | `countdown` | — | Sale countdown timer |
 
 ### Dynamic block types (placeholders in `/home`, resolved via `GET /home/blocks/{type}`)
 
-| Constant | `_content_type_uid` / resolve path | Description |
-|---|---|---|
-| `BlockTypeProductsList` | `products_list` | Product carousel (groupby/salesforce) |
-| `BlockTypeBannerProducts` | `banner_products` | Banner with embedded product tiles |
-| `BlockTypeGreeting` | `container_greeting` | Personalised greeting (authenticated) |
-| `BlockTypeGuestContainer` | `container_guest` | Content for unauthenticated users |
-| `BlockTypeShortcuts` | `container_shortcuts` | Quick-action shortcuts bar |
-| `BlockTypeRecommendations` | `recommendation_product_list` | ML recommendations |
-| `BlockTypeProductCards` | `products_cards` | Product card grid |
+| Constant | `_content_type_uid` | Seen in prod | Description |
+|---|---|---|---|
+| `BlockTypeProductList` | `product_list` | ✅ ×10 | Product carousel (groupby/salesforce) |
+| `BlockTypeGreeting` | `container_greeting` | ✅ ×2 (logged-in) | Personalised greeting (authenticated users only) |
+| `BlockTypeGuestContainer` | `container_guest` | ✅ ×1 (guest) | Content for unauthenticated users only |
+| `BlockTypeShortcuts` | `container_shortcuts` | ✅ ×1 | Quick-action shortcuts bar |
+| `BlockTypeBannerProducts` | `banner_products` | — | Banner with embedded product tiles |
+| `BlockTypeRecommendations` | `recommendation_product_list` | — | ML recommendations |
+| `BlockTypeProductCards` | `products_cards` | — | Product card grid |
+
+### Audience-gated blocks
+
+| Block type | Shown to guests | Shown to authenticated | Filtered by |
+|---|---|---|---|
+| `container_guest` | ✅ Yes | ❌ No | `filterByAudience()` in HomeService |
+| `container_greeting` | ❌ No | ✅ Yes | `filterByAudience()` in HomeService |
+| All other types | ✅ Yes | ✅ Yes | — |
+
+The audience signal comes from the `x-authenticated: true/false` header, set by the API gateway after token validation. The layout service never validates tokens — it trusts the gateway within the internal network.
 
 ### Dynamic classification signals (any one is sufficient)
 
