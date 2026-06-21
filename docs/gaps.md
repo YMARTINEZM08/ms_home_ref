@@ -6,6 +6,16 @@
 **Content-service:** `https://ogcp-apigke-d.liverpool.com.mx/content-service`
 **Session state:** Guest (not logged in — `me.isLoggedIn: false`, `me.isGuest: true`)
 
+> **Gaps 1, 2, and 3 were re-confirmed live on 2026-06-20** using `CONTENT_SERVICE_URL`
+> derived from the `SHARED_CONTENT_URL` found in the repo's `.env` file. All three
+> critical blockers are still present — the Go service returns `NOT_FOUND` with the
+> current configuration.
+>
+> **Security note:** The `.env` file committed to `ms_home_liverpool/` contains
+> the `digital_bff` production secrets (API keys, auth headers, service URLs).
+> It must be removed from git history and a `.gitignore` added immediately.
+> See [`.gitignore`](../.gitignore) — already created.
+
 ---
 
 ## Summary

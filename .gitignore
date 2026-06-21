@@ -1,0 +1,46 @@
+# ── Secrets & environment files ──────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.env
+*.env.*
+.envrc
+
+# ── Go build artefacts ────────────────────────────────────────────────────────
+/ms_home
+/ms_home_*
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# ── Go workspace ─────────────────────────────────────────────────────────────
+go.work
+go.work.sum
+
+# ── Test & coverage output ────────────────────────────────────────────────────
+coverage.out
+coverage.html
+*.coverprofile
+
+# ── IDE & editor ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+.dockerignore.local
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
