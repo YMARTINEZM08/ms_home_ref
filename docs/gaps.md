@@ -2,19 +2,31 @@
 
 **Test date:** 2026-06-20
 **BFF endpoint:** `GET http://localhost:3000/web-bff/content/page/es-mx/tienda/home`
-**Go endpoint:** `GET http://localhost:8081/home`
+**Go endpoint:** `GET http://localhost:8081/home` / `http://localhost:8083/home`
 **Content-service:** `https://ogcp-apigke-d.liverpool.com.mx/content-service`
-**Session state:** Guest (not logged in — `me.isLoggedIn: false`, `me.isGuest: true`)
 
-> **Gaps 1, 2, and 3 were re-confirmed live on 2026-06-20** using `CONTENT_SERVICE_URL`
-> derived from the `SHARED_CONTENT_URL` found in the repo's `.env` file. All three
-> critical blockers are still present — the Go service returns `NOT_FOUND` with the
-> current configuration.
->
-> **Security note:** The `.env` file committed to `ms_home_liverpool/` contains
-> the `digital_bff` production secrets (API keys, auth headers, service URLs).
-> It must be removed from git history and a `.gitignore` added immediately.
-> See [`.gitignore`](../.gitignore) — already created.
+## Test runs
+
+| Run | Date | Session | Go result | BFF blocks | Notes |
+|---|---|---|---|---|---|
+| 1 | 2026-06-20 | Guest (`me.isGuest: true`) | `NOT_FOUND` | 16 | Gaps 1-3 confirmed |
+| 2 | 2026-06-20 | Logged-in cookies (expired) | `NOT_FOUND` | 16 | All gaps persist; session expired — see note |
+
+### Run 2 — logged-in session findings
+
+The session cookies (`LoggedInSession=TRUE`, `DYN_USER_ID=31005309570`) appear to have **expired**. Evidence:
+
+- The BFF response has **no `me` key** (guest run had `me: {isLoggedIn, isGuest, firstName, …}`).
+- The BFF response has **no `shortcuts` key** (guest run had `shortcuts: {}`).
+- The block list is **byte-for-byte identical** to the guest run (16 blocks, same order, same types).
+- `container_guest` is still present at position [01]; `container_greeting` is still absent — behaviour expected for an unauthenticated user.
+
+With valid logged-in cookies the BFF would return a populated `me` object (`isLoggedIn: true`, `firstName`, `cartCount`, etc.) and is expected to swap `container_guest` for `container_greeting`.
+
+> **All gaps from Run 1 remain unchanged in Run 2.** The Go service returns `NOT_FOUND` in both runs for the same root cause (Gap 1).
+
+> **Security note:** The `.env` file in `ms_home_liverpool/` contains `digital_bff` production secrets
+> (API keys, auth headers, service URLs). A `.gitignore` has been added — see [`.gitignore`](../.gitignore).
 
 ---
 
