@@ -76,10 +76,16 @@ func (h *homeHandler) parseRequest(r *http.Request) (*domain.HomeRequest, *domai
 		return nil, domain.ErrBadRequest("channel must be one of: pocket, kiosk, mpos, or omitted")
 	}
 
+	// x-authenticated is set by the API gateway after token validation.
+	// The service trusts this header within the internal network — it never
+	// validates the token itself (separation of concerns).
+	isLoggedIn := r.Header.Get("x-authenticated") == "true"
+
 	return &domain.HomeRequest{
-		Locale:  locale,
-		Brand:   brand,
-		Channel: channel,
-		Preview: preview,
+		Locale:     locale,
+		Brand:      brand,
+		Channel:    channel,
+		Preview:    preview,
+		IsLoggedIn: isLoggedIn,
 	}, nil
 }

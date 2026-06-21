@@ -35,6 +35,8 @@ func (s *Service) GetLayout(ctx context.Context, req domain.HomeRequest) (*domai
 		return nil, appErr
 	}
 
+	rawBlocks = filterByAudience(rawBlocks, req.IsLoggedIn)
+
 	blocks := make([]domain.Block, 0, len(rawBlocks))
 	staticCount, dynamicCount := 0, 0
 

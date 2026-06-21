@@ -44,8 +44,9 @@ type DynamicBlock struct {
 
 // HomeRequest carries the validated, sanitised inputs for a home page composition.
 type HomeRequest struct {
-	Locale  string
-	Brand   string
-	Channel string // optional: pocket | kiosk | mpos
-	Preview bool
+	Locale     string
+	Brand      string
+	Channel    string // optional: pocket | kiosk | mpos
+	Preview    bool
+	IsLoggedIn bool   // true when the caller is an authenticated user
 }

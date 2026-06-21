@@ -53,6 +53,27 @@ func isDynamic(raw domain.RawBlock) bool {
 	return raw.Handle == "client-side"
 }
 
+// filterByAudience removes blocks that are gated to a specific audience.
+// container_greeting is for logged-in users only; container_guest is for guests
+// only. All other blocks are passed through regardless of auth state.
+func filterByAudience(blocks []domain.RawBlock, isLoggedIn bool) []domain.RawBlock {
+	out := make([]domain.RawBlock, 0, len(blocks))
+	for _, b := range blocks {
+		switch b.Type {
+		case domain.BlockTypeGreeting:
+			if !isLoggedIn {
+				continue
+			}
+		case domain.BlockTypeGuestContainer:
+			if isLoggedIn {
+				continue
+			}
+		}
+		out = append(out, b)
+	}
+	return out
+}
+
 // fallbackFrom extracts an optional "fallback" string that the frontend should
 // render when the resolve endpoint is unavailable. Defaults to empty.
 func fallbackFrom(fields map[string]any) string {

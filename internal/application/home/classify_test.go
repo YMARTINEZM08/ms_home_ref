@@ -104,3 +104,43 @@ func TestClassify_DisabledDynamicBlock(t *testing.T) {
 		t.Error("Enabled should be false for a disabled block")
 	}
 }
+
+func TestFilterByAudience_Guest(t *testing.T) {
+	blocks := []domain.RawBlock{
+		{ID: "b1", Type: domain.BlockTypeBanner},
+		{ID: "b2", Type: domain.BlockTypeGreeting},   // logged-in only — must be dropped
+		{ID: "b3", Type: domain.BlockTypeGuestContainer}, // guest only — must be kept
+		{ID: "b4", Type: domain.BlockTypeProductList},
+	}
+
+	result := apphome.FilterByAudienceForTest(blocks, false /* guest */)
+
+	if len(result) != 3 {
+		t.Fatalf("guest: expected 3 blocks, got %d", len(result))
+	}
+	for _, b := range result {
+		if b.Type == domain.BlockTypeGreeting {
+			t.Error("guest: container_greeting should be filtered out")
+		}
+	}
+}
+
+func TestFilterByAudience_LoggedIn(t *testing.T) {
+	blocks := []domain.RawBlock{
+		{ID: "b1", Type: domain.BlockTypeBanner},
+		{ID: "b2", Type: domain.BlockTypeGreeting},    // logged-in only — must be kept
+		{ID: "b3", Type: domain.BlockTypeGuestContainer}, // guest only — must be dropped
+		{ID: "b4", Type: domain.BlockTypeProductList},
+	}
+
+	result := apphome.FilterByAudienceForTest(blocks, true /* logged-in */)
+
+	if len(result) != 3 {
+		t.Fatalf("logged-in: expected 3 blocks, got %d", len(result))
+	}
+	for _, b := range result {
+		if b.Type == domain.BlockTypeGuestContainer {
+			t.Error("logged-in: container_guest should be filtered out")
+		}
+	}
+}
