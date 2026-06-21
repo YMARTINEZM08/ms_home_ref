@@ -1,0 +1,67 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ms-home-liverpool
+  annotations:
+    run.googleapis.com/ingress: internal-and-cloud-load-balancing
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        # Scale to zero when idle; Cloud Run manages min-instances for warm starts.
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "20"
+        # Allow max concurrency per instance; tune per load profile.
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      serviceAccountName: ms-home-liverpool-sa@PROJECT_ID.iam.gserviceaccount.com
+      containerConcurrency: 100
+      timeoutSeconds: 30
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/REPO/ms-home-liverpool:TAG
+          ports:
+            - containerPort: 8080
+              name: http1
+          resources:
+            limits:
+              cpu: "1"
+              memory: 256Mi
+          env:
+            - name: PORT
+              value: "8080"
+            - name: SERVICE_NAME
+              value: ms-home-liverpool
+            - name: ENVIRONMENT
+              value: production
+            - name: LOG_LEVEL
+              value: INFO
+            - name: CONTENT_SERVICE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: content-service-url
+                  key: latest
+            - name: CONTENT_SERVICE_TIMEOUT_MS
+              value: "8000"
+            - name: DEFAULT_BRAND
+              value: LP
+            - name: BREAKER_FAILURE_RATIO
+              value: "0.05"
+            - name: BREAKER_MIN_REQUESTS
+              value: "20"
+            - name: BREAKER_OPEN_TIMEOUT_S
+              value: "30"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ""
+            - name: OTEL_SAMPLE_RATIO
+              value: "0.1"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+            initialDelaySeconds: 5
+            periodSeconds: 10
