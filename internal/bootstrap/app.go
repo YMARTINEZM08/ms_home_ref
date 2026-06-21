@@ -46,8 +46,9 @@ func Run() {
 
 	csClient := contentservice.NewClient(
 		contentservice.Config{
-			BaseURL: cfg.ContentService.URL,
-			Timeout: cfg.ContentService.Timeout,
+			BaseURL:    cfg.ContentService.URL,
+			HomePageID: cfg.ContentService.HomePageID,
+			Timeout:    cfg.ContentService.Timeout,
 			BreakerSettings: breaker.Settings{
 				FailureRatio: cfg.Breaker.FailureRatio,
 				MinRequests:  cfg.Breaker.MinRequests,
@@ -66,7 +67,7 @@ func Run() {
 	// runnable end-to-end before real downstream adapters are wired.
 	// Replace each StubResolver with a real Resolver as adapters are built.
 	for _, bt := range []domain.BlockType{
-		domain.BlockTypeProductsList,
+		domain.BlockTypeProductList,
 		domain.BlockTypeBannerProducts,
 		domain.BlockTypeGreeting,
 		domain.BlockTypeGuestContainer,

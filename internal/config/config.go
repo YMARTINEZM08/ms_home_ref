@@ -21,8 +21,9 @@ type Config struct {
 }
 
 type ContentServiceConfig struct {
-	URL     string
-	Timeout time.Duration
+	URL        string
+	Timeout    time.Duration
+	HomePageID string // page identifier appended to the content-service path (e.g. tienda/home)
 }
 
 type BreakerConfig struct {
@@ -55,8 +56,9 @@ func Load() (*Config, error) {
 		Environment: envOrDefault("ENVIRONMENT", "dev"),
 		LogLevel:    envOrDefault("LOG_LEVEL", "info"),
 		ContentService: ContentServiceConfig{
-			URL:     csURL,
-			Timeout: time.Duration(intOrDefault("CONTENT_SERVICE_TIMEOUT_MS", 30000)) * time.Millisecond,
+			URL:        csURL,
+			Timeout:    time.Duration(intOrDefault("CONTENT_SERVICE_TIMEOUT_MS", 30000)) * time.Millisecond,
+			HomePageID: envOrDefault("HOME_PAGE_ID", "tienda/home"),
 		},
 		DefaultBrand: envOrDefault("DEFAULT_BRAND", "LP"),
 		Breaker: BreakerConfig{

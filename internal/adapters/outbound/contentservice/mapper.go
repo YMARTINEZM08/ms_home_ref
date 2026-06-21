@@ -7,24 +7,24 @@ import (
 )
 
 // contentServiceResponse is the top-level shape returned by the content-service
-// proxy for a home/page/screen entry.
+// proxy for a home/page entry. Blocks live at template.layout.blocks.
 type contentServiceResponse struct {
-	ContentTypeUID string `json:"_content_type_uid"`
-	UID            string `json:"uid"`
-	// Layout holds the ordered list of blocks. The content-service may name
-	// this field "layout" or "blocks" depending on its normalisation state.
-	Layout    []any `json:"layout"`
-	Blocks    []any `json:"blocks"`
-	TopLayout []any `json:"top_layout"`
+	UID      string        `json:"uid"`
+	Template csTemplate    `json:"template"`
 }
 
-// layoutItems returns the first non-empty block array from the response,
+type csTemplate struct {
+	Layout csLayout `json:"layout"`
+}
+
+type csLayout struct {
+	Blocks []any `json:"blocks"`
+}
+
+// layoutItems returns the ordered block list from template.layout.blocks,
 // preserving the ordering from the content-service (Rule 18).
 func (r *contentServiceResponse) layoutItems() []any {
-	if len(r.Blocks) > 0 {
-		return r.Blocks
-	}
-	return r.Layout
+	return r.Template.Layout.Blocks
 }
 
 // mapToRawBlocks converts a normalised content-service response into the

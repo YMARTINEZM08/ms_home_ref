@@ -11,7 +11,7 @@ func TestIsDynamic(t *testing.T) {
 		blockType home.BlockType
 		want      bool
 	}{
-		{home.BlockTypeProductsList, true},
+		{home.BlockTypeProductList, true},
 		{home.BlockTypeBannerProducts, true},
 		{home.BlockTypeGreeting, true},
 		{home.BlockTypeGuestContainer, true},
@@ -38,7 +38,7 @@ func TestIsDynamic(t *testing.T) {
 
 func TestIsAllowedResolveType(t *testing.T) {
 	allowed := []string{
-		"products_list", "banner_products", "container_greeting",
+		"product_list", "banner_products", "container_greeting",
 		"container_guest", "container_shortcuts",
 		"recommendation_product_list", "products_cards",
 	}
@@ -53,7 +53,7 @@ func TestIsAllowedResolveType(t *testing.T) {
 
 	rejected := []string{
 		"", "../etc/passwd", "page", "banner", "unknown",
-		"products_list; DROP TABLE blocks;", "<script>",
+		"product_list; DROP TABLE blocks;", "<script>",
 	}
 	for _, raw := range rejected {
 		t.Run("rejected/"+raw, func(t *testing.T) {

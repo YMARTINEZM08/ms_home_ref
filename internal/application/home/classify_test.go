@@ -31,7 +31,7 @@ func TestClassify_StaticBlock(t *testing.T) {
 		},
 		{
 			name:     "products_list is dynamic",
-			raw:      domain.RawBlock{ID: "b3", Type: domain.BlockTypeProductsList, Enabled: true},
+			raw:      domain.RawBlock{ID: "b3", Type: domain.BlockTypeProductList, Enabled: true},
 			wantKind: domain.KindDynamic,
 		},
 		{
@@ -64,7 +64,7 @@ func TestClassify_StaticBlock(t *testing.T) {
 func TestClassify_DynamicBlock_Placeholder(t *testing.T) {
 	raw := domain.RawBlock{
 		ID:            "p1",
-		Type:          domain.BlockTypeProductsList,
+		Type:          domain.BlockTypeProductList,
 		FeatureFlagID: "flag-products",
 		Enabled:       true,
 		Fields:        map[string]any{"fallback": "skeleton"},
@@ -75,8 +75,8 @@ func TestClassify_DynamicBlock_Placeholder(t *testing.T) {
 		t.Fatal("expected dynamic block")
 	}
 	d := block.Dynamic
-	if d.ResolveEndpoint != "/home/blocks/products_list" {
-		t.Errorf("ResolveEndpoint = %q, want /home/blocks/products_list", d.ResolveEndpoint)
+	if d.ResolveEndpoint != "/home/blocks/product_list" {
+		t.Errorf("ResolveEndpoint = %q, want /home/blocks/product_list", d.ResolveEndpoint)
 	}
 	if d.Fallback != "skeleton" {
 		t.Errorf("Fallback = %q, want skeleton", d.Fallback)

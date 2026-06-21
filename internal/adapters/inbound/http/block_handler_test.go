@@ -58,7 +58,7 @@ func TestBlockHandler_ValidBlockType_CallsRegistry(t *testing.T) {
 	reg := &stubRegistry{result: map[string]any{"data": "resolved"}}
 	router := newBlockTestRouter(reg)
 
-	req := httptest.NewRequest(http.MethodGet, "/home/blocks/products_list?locale=es-mx", nil)
+	req := httptest.NewRequest(http.MethodGet, "/home/blocks/product_list?locale=es-mx", nil)
 	req.Header.Set("x-brand-id", "LP")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -72,7 +72,7 @@ func TestBlockHandler_ServiceUnavailable_Returns503(t *testing.T) {
 	reg := &stubRegistry{err: domain.ErrServiceUnavailable("downstream", nil)}
 	router := newBlockTestRouter(reg)
 
-	req := httptest.NewRequest(http.MethodGet, "/home/blocks/products_list", nil)
+	req := httptest.NewRequest(http.MethodGet, "/home/blocks/product_list", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
@@ -108,7 +108,7 @@ func TestBlockHandler_NoArbitraryHeadersForwarded(t *testing.T) {
 	reg := &stubRegistry{result: map[string]any{}}
 	router := newBlockTestRouter(reg)
 
-	req := httptest.NewRequest(http.MethodGet, "/home/blocks/products_list", nil)
+	req := httptest.NewRequest(http.MethodGet, "/home/blocks/product_list", nil)
 	req.Header.Set("Authorization", "Bearer secret-token")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

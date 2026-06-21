@@ -39,6 +39,7 @@ func newClient(t *testing.T, serverURL string, bs breaker.Settings) *contentserv
 	return contentservice.NewClient(
 		contentservice.Config{
 			BaseURL:         serverURL,
+			HomePageID:      "tienda/home",
 			Timeout:         5 * time.Second,
 			BreakerSettings: bs,
 		},
@@ -49,11 +50,14 @@ func newClient(t *testing.T, serverURL string, bs breaker.Settings) *contentserv
 
 func TestClient_FetchLayout_Success(t *testing.T) {
 	payload := map[string]any{
-		"_content_type_uid": "page",
-		"uid":               "entry1",
-		"layout": []any{
-			map[string]any{"_content_type_uid": "banner", "uid": "b1"},
-			map[string]any{"_content_type_uid": "products_list", "uid": "p1", "source_of_data": "groupby"},
+		"uid": "entry1",
+		"template": map[string]any{
+			"layout": map[string]any{
+				"blocks": []any{
+					map[string]any{"_content_type_uid": "banner", "uid": "b1"},
+					map[string]any{"_content_type_uid": "products_list", "uid": "p1", "source_of_data": "groupby"},
+				},
+			},
 		},
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +148,10 @@ func TestClient_FetchLayout_URLHostAlwaysFromConfig(t *testing.T) {
 		receivedHost = r.Host
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"_content_type_uid": "page", "uid": "e1", "layout": []any{},
+			"uid": "e1",
+			"template": map[string]any{
+				"layout": map[string]any{"blocks": []any{}},
+			},
 		})
 	}))
 	defer srv.Close()

@@ -36,7 +36,7 @@ func TestHomeHandler_HappyPath(t *testing.T) {
 	layout := &domain.Layout{
 		Blocks: []domain.Block{
 			{Kind: domain.KindStatic, Static: &domain.StaticBlock{ID: "s1", Type: domain.BlockTypeBanner, Content: map[string]any{"title": "Hello"}}},
-			{Kind: domain.KindDynamic, Dynamic: &domain.DynamicBlock{ID: "d1", Type: domain.BlockTypeProductsList, ResolveEndpoint: "/home/blocks/products_list", Enabled: enabled}},
+			{Kind: domain.KindDynamic, Dynamic: &domain.DynamicBlock{ID: "d1", Type: domain.BlockTypeProductList, ResolveEndpoint: "/home/blocks/products_list", Enabled: enabled}},
 		},
 	}
 	router := newTestRouter(&stubHomeUC{layout: layout})

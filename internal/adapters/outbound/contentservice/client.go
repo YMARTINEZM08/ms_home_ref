@@ -20,8 +20,9 @@ import (
 // Config holds the content-service adapter configuration.
 // All values come from environment variables — never hardcoded.
 type Config struct {
-	BaseURL   string
-	Timeout   time.Duration
+	BaseURL         string
+	HomePageID      string // page slug appended to the path, e.g. "tienda/home"
+	Timeout         time.Duration
 	BreakerSettings breaker.Settings
 }
 
@@ -126,13 +127,15 @@ func (c *Client) do(ctx context.Context, rawURL string, headers map[string]strin
 // buildURL constructs the content-service URL from config + validated request
 // fields. User input only influences path segments after allowlist checks —
 // the host always comes from config (SSRF prevention).
+// The page identifier (HomePageID) is an infrastructure config value — it is
+// never supplied by the caller and therefore cannot be used for path traversal.
 func (c *Client) buildURL(req home.HomeRequest) (string, error) {
 	base, err := url.Parse(c.cfg.BaseURL)
 	if err != nil {
 		return "", err
 	}
 	contentType := contentTypeFromChannel(req.Channel)
-	base.Path = fmt.Sprintf("/content/%s/%s", contentType, req.Locale)
+	base.Path = fmt.Sprintf("/content/%s/%s/%s", contentType, req.Locale, c.cfg.HomePageID)
 
 	if req.Channel != "" {
 		q := base.Query()

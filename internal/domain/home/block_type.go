@@ -6,18 +6,23 @@ type BlockType string
 
 const (
 	// Static blocks — no session dependency, cacheable.
-	BlockTypeBanner        BlockType = "banner"
-	BlockTypeCarousel      BlockType = "carousel"
-	BlockTypeHeroBanner    BlockType = "hero_banner"
-	BlockTypePromoBar      BlockType = "promo_bar"
-	BlockTypeStaticContent BlockType = "static_content"
-	BlockTypeForm          BlockType = "form"
-	BlockTypeComparePage   BlockType = "comparepage"
-	BlockTypeSearchBanners BlockType = "search_banners"
-	BlockTypeCountdown     BlockType = "countdown"
+	BlockTypeBanner           BlockType = "banner"
+	BlockTypeCarousel         BlockType = "carousel"
+	BlockTypeHeroBanner       BlockType = "hero_banner"
+	BlockTypeHeroBannerSlider BlockType = "hero_banner_slider" // Gap 4 — real CMS type
+	BlockTypePromoBar         BlockType = "promo_bar"
+	BlockTypeStaticContent    BlockType = "static_content"
+	BlockTypeForm             BlockType = "form"
+	BlockTypeComparePage      BlockType = "comparepage"
+	BlockTypeSearchBanners    BlockType = "search_banners"
+	BlockTypeCountdown        BlockType = "countdown"
+	BlockTypeBand             BlockType = "band"             // Gap 4 — real CMS type
+	BlockTypeCardSlider       BlockType = "card_slider"      // Gap 4 — real CMS type
+	BlockTypeUGC              BlockType = "user_generated_content" // Gap 4 — real CMS type
+	BlockTypeContainer        BlockType = "container"        // Gap 4/6 — real CMS type (has nested blocks)
 
 	// Dynamic blocks — session/runtime dependent, returned as placeholders.
-	BlockTypeProductsList    BlockType = "products_list"
+	BlockTypeProductList     BlockType = "product_list"             // Gap 5 — was products_list
 	BlockTypeBannerProducts  BlockType = "banner_products"
 	BlockTypeContainerGrid   BlockType = "container_grid"
 	BlockTypeGreeting        BlockType = "container_greeting"
@@ -30,7 +35,7 @@ const (
 // dynamicBlockTypes is the authoritative allowlist of block types that must be
 // returned as placeholders. Evaluated in classify.go.
 var dynamicBlockTypes = map[BlockType]bool{
-	BlockTypeProductsList:    true,
+	BlockTypeProductList:    true,
 	BlockTypeBannerProducts:  true,
 	BlockTypeGreeting:        true,
 	BlockTypeGuestContainer:  true,
@@ -46,7 +51,7 @@ func IsDynamic(t BlockType) bool {
 
 // allowedBlockTypes is the inbound allowlist for {blockType} path parameters.
 var allowedBlockTypes = map[BlockType]bool{
-	BlockTypeProductsList:    true,
+	BlockTypeProductList:    true,
 	BlockTypeBannerProducts:  true,
 	BlockTypeGreeting:        true,
 	BlockTypeGuestContainer:  true,
